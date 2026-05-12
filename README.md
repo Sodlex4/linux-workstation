@@ -1,4 +1,4 @@
-# dotfiles
+# linux-workstation
 
 This repository contains my personal Linux configuration built on Arch Linux using [Hyprland](https://hyprland.org/) via [Omarchy](https://omarchy.org/).
 
@@ -28,7 +28,7 @@ Current theme: **matte-black** (managed by Omarchy)
 
 ```bash
 # Clone to ~/Projects/dotfiles (or wherever you keep it)
-git clone <url> ~/Projects/dotfiles
+git clone https://github.com/Sodlex4/linux-workstation.git ~/Projects/dotfiles
 
 # Run the install script to symlink configs
 cd ~/Projects/dotfiles
