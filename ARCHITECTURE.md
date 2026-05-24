@@ -96,3 +96,25 @@ Omarchy manages its own defaults in `~/.local/share/omarchy/`. This repo tracks 
 1. **Omarchy defaults** (lowest priority) — in `~/.local/share/omarchy/default/`
 2. **Theme** — in `~/.config/omarchy/current/theme/` (managed by `omarchy-theme-set`)
 3. **User overrides** (highest priority) — in `~/.config/<app>/` (this repo)
+
+## Known Issues
+
+### i915 PSR Crash with hyprlock
+
+**Symptom:** GPU hang/crash notification when hyprlock activates (blur rendering).
+
+**Cause:** Intel Skylake HD Graphics 520 — Panel Self Refresh (PSR) fails to exit
+cleanly when hyprlock triggers GPU rendering with blur passes (`blur_passes = 1` in
+`hyprlock.conf`). PSR allows the display to self-refresh while the GPU idles, but
+Skylake's PSR exit sequence is timing-sensitive and can hang the GPU when a sudden
+render request arrives (e.g. hyprlock fade-in with blur).
+
+**Fix:** Disable PSR via kernel parameter `i915.enable_psr=0`. Set in the Limine
+UKI cmdline at `/boot/limine.conf` (current boot entry, line 29).
+
+**Verification:** Check `/proc/cmdline` — should contain `i915.enable_psr=0`.
+Note: this taints the kernel ("dangerous option"), which is cosmetic and has no
+functional impact.
+
+**Note:** Old Limine snapshot entries (kernels 6.18.x) lack this parameter and
+would reproduce the crash if booted.
