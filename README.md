@@ -8,6 +8,8 @@ This repository contains my personal Linux configuration built on Arch Linux usi
 |-----------|--------|
 | **Hyprland** | `config/hypr/` — window manager (user overrides) |
 | | `config/hypr/omarchy-defaults/` — Omarchy default keybindings & settings |
+| **Hyprlock** | `config/hypr/hyprlock.conf` — lock screen |
+| **Hypridle** | `config/hypr/hypridle.conf` — idle management daemon |
 | **Waybar** | `config/waybar/` — status bar |
 | **Alacritty** | `config/alacritty/` — terminal emulator |
 | **Kitty** | `config/kitty/` — terminal emulator |
