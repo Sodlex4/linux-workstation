@@ -69,6 +69,32 @@ find "$REPO_DIR/config" -type f | sort | while IFS= read -r file; do
     link_config "$file"
 done
 
+# Link omarchy-defaults files into the omarchy source tree
+# This replaces Omarchy's managed defaults with our patched versions.
+echo ""
+echo "--- Omarchy defaults ---"
+find "$REPO_DIR/config" -path '*/omarchy-defaults/*' -type f | sort | while IFS= read -r file; do
+    rel="${file#$REPO_DIR/config/hypr/omarchy-defaults/}"
+    target="$HOME/.local/share/omarchy/default/hypr/$rel"
+    target_dir="$(dirname "$target")"
+
+    mkdir -p "$target_dir"
+
+    if [ -L "$target" ] && [ "$(readlink "$target")" = "$file" ]; then
+        echo "  ✓ Already linked (omarchy): $rel"
+        continue
+    fi
+
+    if [ -e "$target" ] || [ -L "$target" ]; then
+        mkdir -p "$BACKUP_DIR/omarchy-defaults/$(dirname "$rel")"
+        cp -a "$target" "$BACKUP_DIR/omarchy-defaults/$rel"
+        echo "  → Backed up (omarchy): $rel"
+    fi
+
+    ln -sf "$file" "$target"
+    echo "  → Linked (omarchy): $rel"
+done
+
 # Link top-level files
 echo ""
 echo "--- Home files ---"

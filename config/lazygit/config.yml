@@ -1,0 +1,15 @@
+gui:
+  border: rounded
+  theme:
+    activeBorderColor:
+      - cyan
+      - bold
+    inactiveBorderColor:
+      - white
+    selectedLineBgColor:
+      - reverse
+    optionsTextColor:
+      - cyan
+git:
+  paging:
+    colorArg: always

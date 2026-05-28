@@ -118,3 +118,28 @@ functional impact.
 
 **Note:** Old Limine snapshot entries (kernels 6.18.x) lack this parameter and
 would reproduce the crash if booted.
+
+### Hyprland 0.55 Config Breaking Changes
+
+**Symptom:** Config errors on Hyprland startup:
+- `Error parsing gradient -1: failed to parse -1 as a color` (lines 53–54)
+- `config option <dwindle:pseudotile> does not exist` (line 111)
+
+**Cause:** Hyprland 0.55 introduced two breaking changes that Omarchy's default
+`looknfeel.conf` didn't account for:
+1. `-1` removed as a "use default" color sentinel — gradient parser rejects it
+2. `dwindle:pseudotile` option removed entirely (was a no-op)
+
+**Fix applied 2026-05-27:**
+- Lines 53–54: `col.border_locked_active/inactive = -1` → `$activeBorderColor` / `$inactiveBorderColor`
+- Line 111: Removed `pseudotile = true`
+- User override in `~/.config/hypr/looknfeel.conf` adds a `group {}` block as a safety net
+
+**Upstream tracking:**
+- [omarchy#5870](https://github.com/basecamp/omarchy/issues/5870) — Config incompatibility with Hyprland 0.55
+- [omarchy#5752](https://github.com/basecamp/omarchy/issues/5752) — Hyprland 0.55 config errors on startup
+- [omarchy#5820](https://github.com/basecamp/omarchy/issues/5820) — Various 0.55.0 defaults breakage
+
+**Warning:** The default file at `~/.local/share/omarchy/default/hypr/looknfeel.conf` is
+now a symlink tracked by this repo (`config/hypr/omarchy-defaults/looknfeel.conf`).
+`omarchy-update` may warn about the non-regular file but will not overwrite it.

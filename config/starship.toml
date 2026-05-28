@@ -1,10 +1,20 @@
 add_newline = true
-command_timeout = 200
-format = "[$directory$git_branch$git_status]($style)$character"
+command_timeout = 500
+
+format = """
+$time\
+$directory\
+$git_branch\
+$git_status\
+$nodejs\
+$cmd_duration\
+$fill\
+$character"""
 
 [character]
-error_symbol = "[✗](bold cyan)"
+error_symbol = "[✗](bold red)"
 success_symbol = "[❯](bold cyan)"
+vicmd_symbol = "[❮](bold green)"
 
 [directory]
 truncation_length = 2
@@ -13,20 +23,38 @@ repo_root_style = "bold cyan"
 repo_root_format = "[$repo_root]($repo_root_style)[$path]($style)[$read_only]($read_only_style) "
 
 [git_branch]
-format = "[$branch]($style) "
-style = "italic cyan"
+format = "[$symbol$branch]($style) "
+style = "italic purple"
+symbol = " "
 
 [git_status]
-format     = '[$all_status]($style)'
-style      = "cyan"
-ahead      = "⇡${count} "
-diverged   = "⇕⇡${ahead_count}⇣${behind_count} "
-behind     = "⇣${count} "
-conflicted = " "
-up_to_date = " "
-untracked  = "? "
-modified   = " "
-stashed    = ""
-staged     = ""
-renamed    = ""
-deleted    = ""
+format = '([$all_status]($style) )'
+style = "bold red"
+conflicted = "🏳"
+ahead = "⇡${count}"
+behind = "⇣${count}"
+diverged = "⇕⇡${ahead_count}⇣${behind_count}"
+up_to_date = ""
+untracked = "?"
+modified = "!"
+staged = "+"
+renamed = "»"
+deleted = "✕"
+
+[nodejs]
+format = "via [⬢ $version](bold green) "
+detect_files = ["package.json", ".node-version"]
+detect_folders = ["node_modules"]
+
+[time]
+format = "🕐[$time](bold white) "
+disabled = false
+time_format = "%H:%M"
+
+[cmd_duration]
+format = "[⏱ $duration]($style) "
+min_time = 2000
+style = "bold yellow"
+
+[fill]
+symbol = " "

@@ -19,3 +19,4 @@ alias dev-backend='cd ~/dev/backend'
 alias dev-scripts='cd ~/dev/scripts'
 alias dev-notes='cd ~/dev/notes'
 alias dev-work='cd ~/dev/work'
+export PATH="$HOME/.local/bin:$PATH"
