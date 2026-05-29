@@ -1,14 +1,26 @@
 @import "../omarchy/current/theme/waybar.css";
 
+@define-color accent #7aa2f7;
+@define-color red #f7768e;
+@define-color green #9ece6a;
+@define-color yellow #e0af68;
+@define-color surface #24283b;
+@define-color surface2 #32344a;
+
 * {
   background-color: @background;
   color: @foreground;
 
   border: none;
-  border-radius: 0;
+  border-radius: 8px;
   min-height: 0;
-  font-family: 'Liberation Mono';
+  font-family: 'JetBrainsMono Nerd Font';
   font-size: 12px;
+}
+
+window#waybar {
+  background: @background;
+  border-bottom: 1px solid @surface2;
 }
 
 .modules-left {
@@ -19,24 +31,80 @@
   margin-right: 8px;
 }
 
+#workspaces {
+  background: @surface;
+  border-radius: 8px;
+  padding: 2px 4px;
+  margin: 3px 0;
+}
+
 #workspaces button {
   all: initial;
   padding: 0 6px;
   margin: 0 1.5px;
   min-width: 9px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+#workspaces button:hover {
+  background: @surface2;
+}
+
+#workspaces button.active {
+  color: @accent;
+}
+
+#workspaces button.urgent {
+  color: @red;
 }
 
 #workspaces button.empty {
-  opacity: 0.5;
+  opacity: 0.4;
 }
 
 #cpu,
+#memory,
 #battery,
 #pulseaudio,
 #custom-omarchy,
 #custom-update {
   min-width: 12px;
   margin: 0 7.5px;
+}
+
+#cpu,
+#memory,
+#battery,
+#pulseaudio,
+#network,
+#bluetooth,
+#custom-omarchy,
+#custom-update {
+  transition: all 0.2s ease;
+}
+
+#cpu:hover,
+#memory:hover,
+#battery:hover,
+#pulseaudio:hover,
+#network:hover,
+#bluetooth:hover,
+#custom-omarchy:hover,
+#custom-update:hover {
+  color: @accent;
+}
+
+#battery.warning {
+  color: @yellow;
+}
+
+#battery.critical {
+  color: @red;
+}
+
+#battery.charging {
+  color: @green;
 }
 
 #tray {
@@ -56,7 +124,14 @@
 }
 
 tooltip {
-  padding: 2px;
+  background: @background;
+  border: 1px solid @surface2;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+tooltip label {
+  color: @foreground;
 }
 
 #custom-update {

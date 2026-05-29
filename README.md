@@ -14,18 +14,18 @@ This repository contains my personal Linux configuration built on Arch Linux usi
 | **Alacritty** | `config/alacritty/` — terminal emulator |
 | **Kitty** | `config/kitty/` — terminal emulator |
 | **Ghostty** | `config/ghostty/` — terminal emulator |
-| **Mako** | `config/mako/` — notifications (symlinked to theme) |
 | **Walker** | `config/walker/` — app launcher |
 | **SwayOSD** | `config/swayosd/` — on-screen display |
 | **Starship** | `config/starship.toml` — shell prompt |
 | **Btop** | `config/btop/` — system monitor |
 | **Fastfetch** | `config/fastfetch/` — system info |
+| **Lazygit** | `config/lazygit/` — git TUI |
 | **Git** | `config/git/config` — git configuration |
 | **Bash** | `bashrc` — shell aliases and config |
 
 ## Theme
 
-Current theme: **matte-black** (managed by Omarchy)
+Current theme: **Tokyo Night** (managed by Omarchy)
 
 ## Installation
 
