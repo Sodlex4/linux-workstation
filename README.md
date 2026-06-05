@@ -4,7 +4,7 @@ Personal Linux configuration for two machines running Arch Linux on [Hyprland](h
 
 ## Machines
 
-This repo manages configs for two machines. Both share hostname `omarchy` (Omarchy default) and are differentiated by hardware via DMI detection:
+This repo manages configs for two machines. The HP laptop uses hostname `omarchy` (Omarchy default), while the Mac Mini uses `apple-mac-mini`. They are differentiated by hardware via DMI detection:
 
 | Machine | Vendor | Model | Role |
 |---------|--------|-------|------|

@@ -1,6 +1,6 @@
 #!/bin/bash
 # Detect which machine this is based on DMI hardware info.
-# Both machines share hostname "omarchy", so we differentiate by hardware.
+# The HP uses hostname "omarchy"; the Mac Mini uses "apple-mac-mini". Differentiate by hardware.
 # Returns: "hp", "macmini", or "unknown"
 
 set -euo pipefail

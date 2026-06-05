@@ -2,8 +2,8 @@
 
 ## Machines
 
-This repo covers two machines. Both run Arch Linux + Omarchy and share the
-hostname `omarchy`. They are differentiated by hardware:
+This repo covers two machines. Both run Arch Linux + Omarchy. The HP laptop uses
+hostname `omarchy` (Omarchy default), while the Mac Mini uses `apple-mac-mini`. They are differentiated by hardware:
 
 | Machine | Vendor | Model | Role |
 |---------|--------|-------|------|
