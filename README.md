@@ -1,6 +1,6 @@
 # linux-workstation
 
-This repository contains my personal Linux configuration built on Arch Linux using [Hyprland](https://hyprland.org/) via [Omarchy](https://omarchy.org/).
+Personal Linux configuration for two machines running Arch Linux on [Hyprland](https://hyprland.org/) via [Omarchy](https://omarchy.org/): an **HP EliteBook 840 G3** and an **Apple Mac Mini**.
 
 ## Machines
 
