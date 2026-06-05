@@ -143,3 +143,54 @@ would reproduce the crash if booted.
 **Warning:** The default file at `~/.local/share/omarchy/default/hypr/looknfeel.conf` is
 now a symlink tracked by this repo (`config/hypr/omarchy-defaults/looknfeel.conf`).
 `omarchy-update` may warn about the non-regular file but will not overwrite it.
+
+### Omarchy PGP Key Missing on Fresh/Migrated Systems (Mac Mini)
+
+**Scope:** This repo manages configs for two machines — an **HP laptop** (primary
+workstation, Arch Linux + Omarchy) and an **Apple Mac Mini** (secondary machine,
+also Arch Linux + Omarchy). This issue manifested on the **Mac Mini** on 2026-06-05
+during the first `sudo pacman -Syu` after a fresh Omarchy install, but could occur
+on either machine if the omarchy signing key isn't present in the local keyring.
+
+**Symptom:** `sudo pacman -Syu` fails with:
+```
+error: key "F0134EE680CAC571" could not be looked up remotely
+error: required key missing from keyring
+```
+
+**Cause:** All packages from the `[omarchy]` repo are signed with PGP key
+`40DFB630FF42BCFFB047046CF0134EE680CAC571` ("Unknown Packager"). When an upgrade
+introduces packages signed with this key and it's not in your local keyring,
+`pacman` tries to fetch it from a remote keyserver but the default keyservers
+(`hkps://keys.gnupg.net`, `hkps://keyserver.ubuntu.com`, `hkps://keys.openpgp.org`)
+may be unreachable from your network (keyserver protocol often blocked).
+
+Note: The `[omarchy]` repo in `/etc/pacman.conf` uses `SigLevel = Optional TrustAll`,
+so signatures aren't enforced at transaction time. However, `pacman` still requires
+the signing key to be present in the local keyring during the `downloading required
+keys...` phase — without it, the transaction is aborted before `SigLevel` is checked.
+
+**Fix (applied 2026-06-05 to Mac Mini):**
+```bash
+# Download the omarchy repo signing key directly via HTTPS
+curl -sS "https://keys.openpgp.org/vks/v1/by-fingerprint/40DFB630FF42BCFFB047046CF0134EE680CAC571" \
+  -o /tmp/omarchy-key.asc
+
+# Import and trust the key
+sudo pacman-key -a /tmp/omarchy-key.asc
+sudo pacman-key --lsign-key 40DFB630FF42BCFFB047046CF0134EE680CAC571
+
+# Upgrade succeeds
+sudo pacman -Syu
+```
+
+HTTPS (port 443) works where the keyserver protocol fails because it uses
+standard web traffic that networks rarely block.
+
+**Prevention:** `omarchy-keyring` package (`omarchy-pkg-add omarchy-keyring`)
+is supposed to handle this automatically in future versions.
+
+**Key details:**
+- Short ID: `F0134EE680CAC571`
+- Full fingerprint: `40DFB630FF42BCFFB047046CF0134EE680CAC571`
+- UID: `Omarchy <pkgs@omarchy.org>`
