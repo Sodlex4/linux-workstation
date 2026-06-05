@@ -4,13 +4,14 @@ This repository contains my personal Linux configuration built on Arch Linux usi
 
 ## Machines
 
-This repo manages configs for two machines. Both share the hostname `omarchy`
-(Omarchy default) and are differentiated by hardware:
+This repo manages configs for two machines. Both share hostname `omarchy` (Omarchy default) and are differentiated by hardware via DMI detection:
 
 | Machine | Vendor | Model | Role |
 |---------|--------|-------|------|
-| HP Laptop | Hewlett-Packard | — | Primary workstation |
-| Apple Mac Mini | Apple Inc. | Macmini5,1 | Secondary machine |
+| **HP Laptop** | HP | HP EliteBook 840 G3 | Primary workstation |
+| **Apple Mac Mini** | Apple Inc. | Macmini5,1 | Secondary machine |
+
+Machine-specific configs live under `config/<app>/machine/<machine>/` and override shared configs at install time. See `lib/detect-machine.sh` for detection logic.
 
 ## Components
 
