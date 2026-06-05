@@ -7,7 +7,7 @@ hostname `omarchy`. They are differentiated by hardware:
 
 | Machine | Vendor | Model | Role |
 |---------|--------|-------|------|
-| HP Laptop | Hewlett-Packard | — | Primary workstation |
+| HP Laptop | Hewlett-Packard | HP EliteBook 840 G3 | Primary workstation |
 | Apple Mac Mini | Apple Inc. | Macmini5,1 | Secondary machine |
 
 ## Startup Flow
@@ -86,19 +86,22 @@ linux-workstation/
     ├── ghostty/             ── terminal emulator
     ├── git/                 ── git configuration
     ├── hypr/                ── Hyprland window manager
-    │   ├── autostart.conf        ── startup apps (shared/default)
-    │   ├── autostart-hp.conf     ── startup apps (HP)
-    │   ├── autostart-macmini.conf ── startup apps (Mac Mini)
-    │   ├── bindings.conf         ── app keybindings (shared)
-    │   ├── hypridle.conf         ── idle management
-    │   ├── hyprlock.conf         ── lock screen
-    │   ├── input.conf            ── input devices (shared/default)
-    │   ├── input-hp.conf         ── input devices (HP)
-    │   ├── input-macmini.conf    ── input devices (Mac Mini)
-    │   ├── looknfeel.conf        ── appearance overrides
-    │   ├── monitors.conf         ── display setup (shared/default)
-    │   ├── monitors-hp.conf      ── display setup (HP)
-    │   ├── monitors-macmini.conf ── display setup (Mac Mini)
+    │   ├── autostart.conf         ── startup apps (shared fallback)
+    │   ├── bindings.conf          ── app keybindings (shared)
+    │   ├── hypridle.conf          ── idle management
+    │   ├── hyprlock.conf          ── lock screen
+    │   ├── input.conf             ── input devices (shared fallback)
+    │   ├── looknfeel.conf         ── appearance overrides
+    │   ├── monitors.conf          ── display setup (shared fallback)
+    │   ├── machine/
+    │   │   ├── hp/
+    │   │   │   ├── autostart.conf ── startup apps (HP)
+    │   │   │   ├── input.conf     ── input devices (HP)
+    │   │   │   └── monitors.conf  ── display setup (HP)
+    │   │   └── macmini/
+    │   │       ├── autostart.conf ── startup apps (Mac Mini)
+    │   │       ├── input.conf     ── input devices (Mac Mini)
+    │   │       └── monitors.conf  ── display setup (Mac Mini)
     │   └── omarchy-defaults/     ── Omarchy upstream configs
     ├── kitty/               ── terminal emulator
     ├── swayosd/             ── on-screen display
@@ -107,35 +110,38 @@ linux-workstation/
     └── starship.toml        ── shell prompt
 ```
 
-## Configuration Layering
-
-Omarchy manages its own defaults in `~/.local/share/omarchy/`. This repo tracks only **user overrides** in `~/.config/`. The priority order is:
-
-1. **Omarchy defaults** (lowest priority) — in `~/.local/share/omarchy/default/`
-2. **Theme** — in `~/.config/omarchy/current/theme/` (managed by `omarchy-theme-set`)
-3. **User overrides** (highest priority) — in `~/.config/<app>/` (this repo)
-
 ## Machine Detection
 
 Machine detection is handled by `lib/detect-machine.sh`, which reads DMI info
-from `/sys/class/dmi/id/sys_vendor` and falls back to `hostnamectl`:
+from `/sys/class/dmi/id/product_name` and `sys_vendor`, falling back to
+`hostnamectl`. Checks product name first, then vendor:
 
-| DMI Vendor | Output |
-|------------|--------|
-| `Apple Inc.` | `macmini` |
-| `HP` / `Hewlett-Packard` | `hp` |
-| anything else | `unknown` |
+| Detection Source | Match | Output |
+|-----------------|-------|--------|
+| `product_name` | `HP EliteBook` | `hp` |
+| `product_name` | `Macmini` | `macmini` |
+| `sys_vendor` | `Apple Inc.` | `macmini` |
+| `sys_vendor` | `HP` / `Hewlett-Packard` | `hp` |
+| anything else | — | `unknown` |
 
-`install.sh` calls it as a sub-script:
+## Machine-Specific Config Overrides
 
-```bash
-MACHINE=$(bash "$REPO_DIR/lib/detect-machine.sh")
-```
+Machine-specific configs live in `config/<app>/machine/<name>/`. `install.sh`
+links them in two passes:
 
-Config files with a `-hp` or `-macmini` suffix are linked **only on the matching
-machine** with the suffix stripped (e.g. `monitors-macmini.conf` → `~/.config/hypr/monitors.conf`
-on Mac Mini only). Shared files without a machine suffix are linked on all machines
-unless a machine-specific variant exists, in which case the shared file is skipped.
+1. **Shared pass** — links all files under `config/` except `machine/` and
+   `omarchy-defaults/`
+2. **Machine override pass** — links files from `config/<app>/machine/<MACHINE>/`,
+   overwriting the shared symlinks with machine-specific versions
+
+Example: On Mac Mini, `config/hypr/machine/macmini/monitors.conf` is linked to
+`~/.config/hypr/monitors.conf`, replacing the shared `monitors.conf` symlink.
+
+The full config priority order is:
+1. **Omarchy defaults** (lowest) — `~/.local/share/omarchy/default/`
+2. **Theme** — `~/.config/omarchy/current/theme/` (managed by `omarchy-theme-set`)
+3. **Shared user overrides** — `~/.config/<app>/<file>` (this repo)
+4. **Machine-specific overrides** (highest) — overwrites shared symlinks during install
 
 ## Known Issues
 
