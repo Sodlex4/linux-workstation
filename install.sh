@@ -8,13 +8,7 @@ set -euo pipefail
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKUP_DIR="$HOME/.config/dotfiles-backup-$(date +%s)"
 
-# Detect which machine we're on
-MACHINE=""
-if hostnamectl 2>/dev/null | grep -F "Hardware Model" | grep -qi "macmini"; then
-    MACHINE="macmini"
-elif hostnamectl 2>/dev/null | grep -F "Hardware Vendor" | grep -qi "HP"; then
-    MACHINE="hp"
-fi
+MACHINE=$(bash "$REPO_DIR/lib/detect-machine.sh" 2>/dev/null || true)
 
 # config/<app>/<file> -> ~/.config/<app>/<file>
 # Machine-specific: file-macmini.conf → file.conf (on Mac Mini only)

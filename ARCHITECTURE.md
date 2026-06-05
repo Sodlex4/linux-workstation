@@ -75,6 +75,8 @@ linux-workstation/
 ├── ARCHITECTURE.md          ← this file
 ├── README.md                ← overview & install guide
 ├── install.sh               ← symlink installer
+├── lib/
+│   └── detect-machine.sh    ← DMI-based machine detection
 ├── bashrc                   ← shell aliases & config
 │
 └── config/
@@ -115,15 +117,19 @@ Omarchy manages its own defaults in `~/.local/share/omarchy/`. This repo tracks 
 
 ## Machine Detection
 
-The `install.sh` script detects which machine it's running on via `hostnamectl`:
+Machine detection is handled by `lib/detect-machine.sh`, which reads DMI info
+from `/sys/class/dmi/id/sys_vendor` and falls back to `hostnamectl`:
+
+| DMI Vendor | Output |
+|------------|--------|
+| `Apple Inc.` | `macmini` |
+| `HP` / `Hewlett-Packard` | `hp` |
+| anything else | `unknown` |
+
+`install.sh` calls it as a sub-script:
 
 ```bash
-MACHINE=""
-if hostnamectl | grep -F "Hardware Model" | grep -qi "macmini"; then
-    MACHINE="macmini"
-elif hostnamectl | grep -F "Hardware Vendor" | grep -qi "HP"; then
-    MACHINE="hp"
-fi
+MACHINE=$(bash "$REPO_DIR/lib/detect-machine.sh")
 ```
 
 Config files with a `-hp` or `-macmini` suffix are linked **only on the matching
