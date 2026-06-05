@@ -1,0 +1,31 @@
+# Common packages — installed on ALL machines
+# Arch Linux (pacman)
+
+hyprland
+hyprpaper
+hypridle
+hyprlock
+waybar
+kitty
+alacritty
+ghostty
+starship
+btop
+fastfetch
+lazygit
+tmux
+neovim
+walker
+swaync
+swayosd
+pipewire
+wireplumber
+pavucontrol
+brightnessctl
+playerctl
+grim
+slurp
+cliphist
+wl-clipboard
+jq
+python
