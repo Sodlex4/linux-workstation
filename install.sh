@@ -1,20 +1,57 @@
 #!/bin/bash
 # Symlink dotfiles from this repo to ~/.config/ and ~/
 # Backs up existing files before replacing.
+# Supports machine-specific files with -hp or -macmini suffix.
 
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKUP_DIR="$HOME/.config/dotfiles-backup-$(date +%s)"
 
+# Detect which machine we're on
+MACHINE=""
+if hostnamectl 2>/dev/null | grep -F "Hardware Model" | grep -qi "macmini"; then
+    MACHINE="macmini"
+elif hostnamectl 2>/dev/null | grep -F "Hardware Vendor" | grep -qi "HP"; then
+    MACHINE="hp"
+fi
+
 # config/<app>/<file> -> ~/.config/<app>/<file>
+# Machine-specific: file-macmini.conf → file.conf (on Mac Mini only)
+#                   file-hp.conf     → file.conf (on HP only)
+# Shared files without suffix are linked on all machines.
 link_config() {
     local src="$1"
+    local basename="$(basename "$src")"
+    local dir="$(dirname "$src")"
     local rel="${src#$REPO_DIR/config/}"
+
+    local target_machine=""
+    case "$basename" in
+        *-hp.*)     target_machine="hp" ;;
+        *-macmini.*) target_machine="macmini" ;;
+    esac
+
+    if [ -n "$target_machine" ]; then
+        if [ "$target_machine" != "$MACHINE" ]; then
+            echo "  - Skipped (${target_machine}): $rel"
+            return
+        fi
+        local new_basename="${basename/-$target_machine/}"
+        rel="${rel/$basename/$new_basename}"
+    else
+        local name="${basename%.*}"
+        local ext="${basename##*.}"
+        local variant_file="$dir/${name}-${MACHINE}.${ext}"
+        if [ -f "$variant_file" ] && [ -n "$MACHINE" ]; then
+            echo "  - Skipped (shared, ${MACHINE} variant exists): $rel"
+            return
+        fi
+    fi
+
     local target="$HOME/.config/$rel"
     local target_dir="$(dirname "$target")"
 
-    # Ensure target directory exists
     mkdir -p "$target_dir"
 
     if [ -L "$target" ] && [ "$(readlink "$target")" = "$src" ]; then
@@ -32,17 +69,35 @@ link_config() {
     echo "  → Linked: $rel"
 }
 
-# Top-level files like bashrc -> ~/.bashrc
 link_home() {
     local src="$1"
-    local filename="$(basename "$src")"
-    local target="$HOME/.${filename#.}"
+    local basename="$(basename "$src")"
+    local target="$HOME/.${basename#.}"
 
-    # strip leading "dot-" prefix if present (e.g. dot-bashrc -> .bashrc)
-    if [[ "$filename" == dot-* ]]; then
-        target="$HOME/.${filename#dot-}"
-    elif [[ "$filename" != .* ]]; then
-        target="$HOME/.$filename"
+    if [[ "$basename" == dot-* ]]; then
+        target="$HOME/.${basename#dot-}"
+    elif [[ "$basename" != .* ]]; then
+        target="$HOME/.$basename"
+    fi
+
+    local target_machine=""
+    case "$basename" in
+        *-hp.*)     target_machine="hp" ;;
+        *-macmini.*) target_machine="macmini" ;;
+    esac
+
+    if [ -n "$target_machine" ]; then
+        if [ "$target_machine" != "$MACHINE" ]; then
+            local rel="${src#$REPO_DIR/}"
+            echo "  - Skipped (${target_machine}): $rel"
+            return
+        fi
+        local new_basename="${basename/-$target_machine/}"
+        local target_name="$HOME/.${new_basename#.}"
+        if [[ "$new_basename" != .* ]]; then
+            target_name="$HOME/.$new_basename"
+        fi
+        target="$target_name"
     fi
 
     if [ -L "$target" ] && [ "$(readlink "$target")" = "$src" ]; then
@@ -61,16 +116,14 @@ link_home() {
 }
 
 echo "==> Installing dotfiles from $REPO_DIR"
+echo "==> Detected machine: ${MACHINE:-unknown}"
 echo ""
 
-# Link all config files
 echo "--- Config files ---"
-find "$REPO_DIR/config" -type f | sort | while IFS= read -r file; do
+find "$REPO_DIR/config" -type f ! -path '*/omarchy-defaults/*' | sort | while IFS= read -r file; do
     link_config "$file"
 done
 
-# Link omarchy-defaults files into the omarchy source tree
-# This replaces Omarchy's managed defaults with our patched versions.
 echo ""
 echo "--- Omarchy defaults ---"
 find "$REPO_DIR/config" -path '*/omarchy-defaults/*' -type f | sort | while IFS= read -r file; do
@@ -95,7 +148,6 @@ find "$REPO_DIR/config" -path '*/omarchy-defaults/*' -type f | sort | while IFS=
     echo "  → Linked (omarchy): $rel"
 done
 
-# Link top-level files
 echo ""
 echo "--- Home files ---"
 find "$REPO_DIR" -maxdepth 1 -type f ! -name 'install.sh' ! -name '.gitignore' ! -name 'README.md' | sort | while IFS= read -r file; do

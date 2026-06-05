@@ -84,14 +84,20 @@ linux-workstation/
     ├── ghostty/             ── terminal emulator
     ├── git/                 ── git configuration
     ├── hypr/                ── Hyprland window manager
-    │   ├── autostart.conf   ── startup apps (user)
-    │   ├── bindings.conf    ── app keybindings (user)
-    │   ├── hypridle.conf    ── idle management
-    │   ├── hyprlock.conf    ── lock screen
-    │   ├── input.conf       ── input devices (user)
-    │   ├── looknfeel.conf   ── appearance overrides
-    │   ├── monitors.conf    ── display setup
-    │   └── omarchy-defaults/  ── Omarchy upstream configs
+    │   ├── autostart.conf        ── startup apps (shared/default)
+    │   ├── autostart-hp.conf     ── startup apps (HP)
+    │   ├── autostart-macmini.conf ── startup apps (Mac Mini)
+    │   ├── bindings.conf         ── app keybindings (shared)
+    │   ├── hypridle.conf         ── idle management
+    │   ├── hyprlock.conf         ── lock screen
+    │   ├── input.conf            ── input devices (shared/default)
+    │   ├── input-hp.conf         ── input devices (HP)
+    │   ├── input-macmini.conf    ── input devices (Mac Mini)
+    │   ├── looknfeel.conf        ── appearance overrides
+    │   ├── monitors.conf         ── display setup (shared/default)
+    │   ├── monitors-hp.conf      ── display setup (HP)
+    │   ├── monitors-macmini.conf ── display setup (Mac Mini)
+    │   └── omarchy-defaults/     ── Omarchy upstream configs
     ├── kitty/               ── terminal emulator
     ├── swayosd/             ── on-screen display
     ├── walker/              ── app launcher
@@ -107,9 +113,29 @@ Omarchy manages its own defaults in `~/.local/share/omarchy/`. This repo tracks 
 2. **Theme** — in `~/.config/omarchy/current/theme/` (managed by `omarchy-theme-set`)
 3. **User overrides** (highest priority) — in `~/.config/<app>/` (this repo)
 
+## Machine Detection
+
+The `install.sh` script detects which machine it's running on via `hostnamectl`:
+
+```bash
+MACHINE=""
+if hostnamectl | grep -F "Hardware Model" | grep -qi "macmini"; then
+    MACHINE="macmini"
+elif hostnamectl | grep -F "Hardware Vendor" | grep -qi "HP"; then
+    MACHINE="hp"
+fi
+```
+
+Config files with a `-hp` or `-macmini` suffix are linked **only on the matching
+machine** with the suffix stripped (e.g. `monitors-macmini.conf` → `~/.config/hypr/monitors.conf`
+on Mac Mini only). Shared files without a machine suffix are linked on all machines
+unless a machine-specific variant exists, in which case the shared file is skipped.
+
 ## Known Issues
 
-### i915 PSR Crash with hyprlock
+### HP Laptop
+
+#### i915 PSR Crash with hyprlock
 
 **Symptom:** GPU hang/crash notification when hyprlock activates (blur rendering).
 
@@ -129,36 +155,11 @@ functional impact.
 **Note:** Old Limine snapshot entries (kernels 6.18.x) lack this parameter and
 would reproduce the crash if booted.
 
-### Hyprland 0.55 Config Breaking Changes
+### Apple Mac Mini
 
-**Symptom:** Config errors on Hyprland startup:
-- `Error parsing gradient -1: failed to parse -1 as a color` (lines 53–54)
-- `config option <dwindle:pseudotile> does not exist` (line 111)
+#### Omarchy PGP Key Missing on Fresh/Migrated Systems
 
-**Cause:** Hyprland 0.55 introduced two breaking changes that Omarchy's default
-`looknfeel.conf` didn't account for:
-1. `-1` removed as a "use default" color sentinel — gradient parser rejects it
-2. `dwindle:pseudotile` option removed entirely (was a no-op)
-
-**Fix applied 2026-05-27:**
-- Lines 53–54: `col.border_locked_active/inactive = -1` → `$activeBorderColor` / `$inactiveBorderColor`
-- Line 111: Removed `pseudotile = true`
-- User override in `~/.config/hypr/looknfeel.conf` adds a `group {}` block as a safety net
-
-**Upstream tracking:**
-- [omarchy#5870](https://github.com/basecamp/omarchy/issues/5870) — Config incompatibility with Hyprland 0.55
-- [omarchy#5752](https://github.com/basecamp/omarchy/issues/5752) — Hyprland 0.55 config errors on startup
-- [omarchy#5820](https://github.com/basecamp/omarchy/issues/5820) — Various 0.55.0 defaults breakage
-
-**Warning:** The default file at `~/.local/share/omarchy/default/hypr/looknfeel.conf` is
-now a symlink tracked by this repo (`config/hypr/omarchy-defaults/looknfeel.conf`).
-`omarchy-update` may warn about the non-regular file but will not overwrite it.
-
-### Omarchy PGP Key Missing on Fresh/Migrated Systems (Apple Mac Mini)
-
-**Scope:** This repo manages configs for two machines — an **HP laptop** (primary
-workstation, Arch Linux + Omarchy) and an **Apple Mac Mini** (secondary machine,
-also Arch Linux + Omarchy). This issue manifested on the **Apple Mac Mini** on 2026-06-05
+**Scope:** This issue manifested on the **Apple Mac Mini** on 2026-06-05
 during the first `sudo pacman -Syu` after a fresh Omarchy install, but could occur
 on either machine if the omarchy signing key isn't present in the local keyring.
 
@@ -204,3 +205,30 @@ is supposed to handle this automatically in future versions.
 - Short ID: `F0134EE680CAC571`
 - Full fingerprint: `40DFB630FF42BCFFB047046CF0134EE680CAC571`
 - UID: `Omarchy <pkgs@omarchy.org>`
+
+### Shared (both machines)
+
+#### Hyprland 0.55 Config Breaking Changes
+
+**Symptom:** Config errors on Hyprland startup:
+- `Error parsing gradient -1: failed to parse -1 as a color` (lines 53–54)
+- `config option <dwindle:pseudotile> does not exist` (line 111)
+
+**Cause:** Hyprland 0.55 introduced two breaking changes that Omarchy's default
+`looknfeel.conf` didn't account for:
+1. `-1` removed as a "use default" color sentinel — gradient parser rejects it
+2. `dwindle:pseudotile` option removed entirely (was a no-op)
+
+**Fix applied 2026-05-27:**
+- Lines 53–54: `col.border_locked_active/inactive = -1` → `$activeBorderColor` / `$inactiveBorderColor`
+- Line 111: Removed `pseudotile = true`
+- User override in `~/.config/hypr/looknfeel.conf` adds a `group {}` block as a safety net
+
+**Upstream tracking:**
+- [omarchy#5870](https://github.com/basecamp/omarchy/issues/5870) — Config incompatibility with Hyprland 0.55
+- [omarchy#5752](https://github.com/basecamp/omarchy/issues/5752) — Hyprland 0.55 config errors on startup
+- [omarchy#5820](https://github.com/basecamp/omarchy/issues/5820) — Various 0.55.0 defaults breakage
+
+**Warning:** The default file at `~/.local/share/omarchy/default/hypr/looknfeel.conf` is
+now a symlink tracked by this repo (`config/hypr/omarchy-defaults/looknfeel.conf`).
+`omarchy-update` may warn about the non-regular file but will not overwrite it.
