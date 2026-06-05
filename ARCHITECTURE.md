@@ -1,5 +1,15 @@
 # Architecture
 
+## Machines
+
+This repo covers two machines. Both run Arch Linux + Omarchy and share the
+hostname `omarchy`. They are differentiated by hardware:
+
+| Machine | Vendor | Model | Role |
+|---------|--------|-------|------|
+| HP Laptop | Hewlett-Packard | — | Primary workstation |
+| Apple Mac Mini | Apple Inc. | Macmini5,1 | Secondary machine |
+
 ## Startup Flow
 
 Hyprland reads `~/.config/hypr/hyprland.conf`, which layers configuration from three sources:
@@ -144,11 +154,11 @@ would reproduce the crash if booted.
 now a symlink tracked by this repo (`config/hypr/omarchy-defaults/looknfeel.conf`).
 `omarchy-update` may warn about the non-regular file but will not overwrite it.
 
-### Omarchy PGP Key Missing on Fresh/Migrated Systems (Mac Mini)
+### Omarchy PGP Key Missing on Fresh/Migrated Systems (Apple Mac Mini)
 
 **Scope:** This repo manages configs for two machines — an **HP laptop** (primary
 workstation, Arch Linux + Omarchy) and an **Apple Mac Mini** (secondary machine,
-also Arch Linux + Omarchy). This issue manifested on the **Mac Mini** on 2026-06-05
+also Arch Linux + Omarchy). This issue manifested on the **Apple Mac Mini** on 2026-06-05
 during the first `sudo pacman -Syu` after a fresh Omarchy install, but could occur
 on either machine if the omarchy signing key isn't present in the local keyring.
 
@@ -170,7 +180,7 @@ so signatures aren't enforced at transaction time. However, `pacman` still requi
 the signing key to be present in the local keyring during the `downloading required
 keys...` phase — without it, the transaction is aborted before `SigLevel` is checked.
 
-**Fix (applied 2026-06-05 to Mac Mini):**
+**Fix (applied 2026-06-05 to Apple Mac Mini):**
 ```bash
 # Download the omarchy repo signing key directly via HTTPS
 curl -sS "https://keys.openpgp.org/vks/v1/by-fingerprint/40DFB630FF42BCFFB047046CF0134EE680CAC571" \

@@ -2,6 +2,16 @@
 
 This repository contains my personal Linux configuration built on Arch Linux using [Hyprland](https://hyprland.org/) via [Omarchy](https://omarchy.org/).
 
+## Machines
+
+This repo manages configs for two machines. Both share the hostname `omarchy`
+(Omarchy default) and are differentiated by hardware:
+
+| Machine | Vendor | Model | Role |
+|---------|--------|-------|------|
+| HP Laptop | Hewlett-Packard | — | Primary workstation |
+| Apple Mac Mini | Apple Inc. | Macmini5,1 | Secondary machine |
+
 ## Components
 
 | Component | Config |
