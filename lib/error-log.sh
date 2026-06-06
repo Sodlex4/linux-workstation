@@ -43,15 +43,7 @@ ERRORS_FILE="$ERRORS_DIR/errors.json"
 if [ "$LIST" = true ]; then
     if [ -f "$ERRORS_FILE" ]; then
         echo "Errors for $MACHINE:"
-        python3 -c "
-import json
-with open('$ERRORS_FILE') as f:
-    errors = json.load(f)
-for e in errors:
-    print(f\"  [{e['status']}] {e['date']}: {e['error']}\")
-    if e.get('fix'):
-        print(f\"    Fix: {e['fix']}\")
-" 2>/dev/null || cat "$ERRORS_FILE"
+        jq -r '.[] | "  [" + .status + "] " + .date + ": " + .error + (if .fix then "\n    Fix: " + .fix else "" end)' "$ERRORS_FILE" 2>/dev/null || cat "$ERRORS_FILE"
     else
         echo "No errors logged for $MACHINE"
     fi
@@ -64,51 +56,51 @@ fi
 
 DATE=$(date +%Y-%m-%d)
 
-if [ -f "$ERRORS_FILE" ]; then
-    python3 -c "
-import json
-with open('$ERRORS_FILE') as f:
-    errors = json.load(f)
-errors.append({
-    'date': '$DATE',
-    'machine': '$MACHINE',
-    'error': '$ERROR',
-    'fix': '$FIX',
-    'status': '$STATUS'
-})
-with open('$ERRORS_FILE', 'w') as f:
-    json.dump(errors, f, indent=2)
-" 2>/dev/null || {
-    echo "[]" > "$ERRORS_FILE.tmp"
-    python3 -c "
-import json
-with open('$ERRORS_FILE.tmp') as f:
-    errors = json.load(f)
-errors.append({
-    'date': '$DATE',
-    'machine': '$MACHINE',
-    'error': '$ERROR',
-    'fix': '$FIX',
-    'status': '$STATUS'
-})
-with open('$ERRORS_FILE.tmp', 'w') as f:
-    json.dump(errors, f, indent=2)
-" && mv "$ERRORS_FILE.tmp" "$ERRORS_FILE"
-}
+# Use jq for safe JSON construction (no shell injection)
+if command -v jq &>/dev/null; then
+    if [ -f "$ERRORS_FILE" ]; then
+        jq --arg date "$DATE" \
+           --arg machine "$MACHINE" \
+           --arg error "$ERROR" \
+           --arg fix "$FIX" \
+           --arg status "$STATUS" \
+           '. + [{$date, machine: $machine, error: $error, fix: $fix, status: $status}]' \
+           "$ERRORS_FILE" > "${ERRORS_FILE}.tmp" && mv "${ERRORS_FILE}.tmp" "$ERRORS_FILE"
+    else
+        jq -n --arg date "$DATE" \
+           --arg machine "$MACHINE" \
+           --arg error "$ERROR" \
+           --arg fix "$FIX" \
+           --arg status "$STATUS" \
+           '[{$date, machine: $machine, error: $error, fix: $fix, status: $status}]' \
+           > "$ERRORS_FILE"
+    fi
 else
-    echo '[]' | python3 -c "
-import json, sys
-data = json.load(sys.stdin)
-data.append({
-    'date': '$DATE',
-    'machine': '$MACHINE',
-    'error': '$ERROR',
-    'fix': '$FIX',
-    'status': '$STATUS'
-})
-with open('$ERRORS_FILE', 'w') as f:
-    json.dump(data, f, indent=2)
-" 2>/dev/null || {
+    # Fallback: python3 with env vars (no shell interpolation)
+    export ERR_DATE="$DATE"
+    export ERR_MACHINE="$MACHINE"
+    export ERR_ERROR="$ERROR"
+    export ERR_FIX="$FIX"
+    export ERR_STATUS="$STATUS"
+    export ERR_FILE="$ERRORS_FILE"
+    python3 -c '
+import os, json
+file = os.environ["ERR_FILE"]
+date = os.environ["ERR_DATE"]
+machine = os.environ["ERR_MACHINE"]
+error = os.environ["ERR_ERROR"]
+fix = os.environ["ERR_FIX"]
+status = os.environ["ERR_STATUS"]
+entry = {"date": date, "machine": machine, "error": error, "fix": fix, "status": status}
+if os.path.exists(file):
+    with open(file) as f:
+        errors = json.load(f)
+else:
+    errors = []
+errors.append(entry)
+with open(file, "w") as f:
+    json.dump(errors, f, indent=2)
+' 2>/dev/null || {
     cat > "$ERRORS_FILE" << JSON_EOF
 [
   {

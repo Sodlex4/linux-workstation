@@ -38,10 +38,31 @@ probe_distro() {
     fi
 }
 
-# Output as JSON
-echo "{"
-echo "  \"distro\": \"$(probe_distro)\","
-echo "  \"gpu\": \"$(probe_gpu | sed 's/"/\\"/g')\","
-echo "  \"monitors\": $(probe_monitors),"
-echo "  \"input\": $(probe_input)"
-echo "}"
+# Build safe JSON with jq
+if command -v jq &>/dev/null; then
+    DISTRO=$(probe_distro)
+    GPU=$(probe_gpu)
+    MONITORS=$(probe_monitors)
+    INPUT=$(probe_input)
+    jq -n \
+        --arg distro "$DISTRO" \
+        --arg gpu "$GPU" \
+        --argjson monitors "$MONITORS" \
+        --argjson input "$INPUT" \
+        '{distro: $distro, gpu: $gpu, monitors: $monitors, input: $input}'
+else
+    # Fallback: python with env vars
+    export PD_DISTRO=$(probe_distro)
+    export PD_GPU=$(probe_gpu)
+    export PD_MONITORS=$(probe_monitors)
+    export PD_INPUT=$(probe_input)
+    python3 -c '
+import os, json
+print(json.dumps({
+    "distro": os.environ["PD_DISTRO"],
+    "gpu": os.environ["PD_GPU"],
+    "monitors": json.loads(os.environ["PD_MONITORS"]),
+    "input": json.loads(os.environ["PD_INPUT"])
+}))
+'
+fi
