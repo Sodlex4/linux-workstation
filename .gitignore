@@ -14,3 +14,7 @@ Thumbs.db
 *.log
 *.bak
 *.backup
+dotfiles-backup-*/
+
+# Generated per-machine error tracking
+errors.json

@@ -2,9 +2,10 @@
 [[ $- != *i* ]] && return
 
 # Preserve Omarchy's environment, aliases, and functions
-source ~/.local/share/omarchy/default/bash/envs
-source ~/.local/share/omarchy/default/bash/aliases
-source ~/.local/share/omarchy/default/bash/functions
+OMARCHY_BASH=~/.local/share/omarchy/default/bash
+[ -f "$OMARCHY_BASH/envs" ] && source "$OMARCHY_BASH/envs"
+[ -f "$OMARCHY_BASH/aliases" ] && source "$OMARCHY_BASH/aliases"
+[ -f "$OMARCHY_BASH/functions" ] && source "$OMARCHY_BASH/functions"
 
 # Init tools
 if command -v mise &> /dev/null; then
@@ -20,8 +21,12 @@ if command -v zoxide &> /dev/null; then
 fi
 
 if command -v fzf &> /dev/null; then
-  source /usr/share/fzf/completion.zsh 2>/dev/null
-  source /usr/share/fzf/key-bindings.zsh 2>/dev/null
+  for fzf_dir in /usr/share/fzf /usr/share/zsh/site-functions /usr/local/opt/fzf/shell; do
+    [ -f "$fzf_dir/completion.zsh" ] && source "$fzf_dir/completion.zsh" && break
+  done
+  for fzf_dir in /usr/share/fzf /usr/share/zsh/site-functions /usr/local/opt/fzf/shell; do
+    [ -f "$fzf_dir/key-bindings.zsh" ] && source "$fzf_dir/key-bindings.zsh" && break
+  done
 fi
 
 # History

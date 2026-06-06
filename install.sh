@@ -19,7 +19,7 @@ check_stale_symlinks() {
             echo "  ⚠ Stale symlink: $link → $target"
             found=$((found + 1))
         fi
-    done < <(find "$HOME/.config" -type l -print0 2>/dev/null || true)
+    done < <(find "$HOME/.config" "$HOME" -maxdepth 1 -type l -print0 2>/dev/null || true)
     if [ $found -gt 0 ]; then
         echo "  → install.sh will re-link these to the correct paths."
     fi
@@ -144,7 +144,7 @@ fi
 
 echo ""
 echo "--- Home files ---"
-find "$REPO_DIR" -maxdepth 1 -type f ! -name 'install.sh' ! -name '.gitignore' ! -name 'README.md' ! -name 'ARCHITECTURE.md' ! -name 'ROADMAP.md' ! -name 'MACHINES.md' | sort | while IFS= read -r file; do
+find "$REPO_DIR" -maxdepth 1 -type f ! -name 'install.sh' ! -name '.gitignore' ! -name 'README.md' ! -name 'ARCHITECTURE.md' ! -name 'MACHINES.md' | sort | while IFS= read -r file; do
     link_home "$file"
 done
 

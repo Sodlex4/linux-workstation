@@ -38,16 +38,16 @@ Hyprland reads `~/.config/hypr/hyprland.conf`, which layers configuration from t
 
 After Hyprland initializes, the following start via `exec-once`:
 
-| Service | Role |
-|---------|------|
-| `hypridle` | Idle daemon — manages screensaver, lock, display power |
-| `mako` | Notification daemon |
-| `waybar` | Status bar |
-| `fcitx5` | Input method framework |
-| `swayosd-server` | On-screen display (volume, brightness) |
-| `polkit-gnome` | Authentication agent |
-| `awww-daemon` | Wallpaper daemon |
-| `omarchy-bg-slideshow` | Wallpaper cycling |
+| Service | Role | Source |
+|---------|------|--------|
+| `hypridle` | Idle daemon — screensaver, lock, DPMS | Omarchy default |
+| `swaync` | Notification daemon | Omarchy default |
+| `waybar` | Status bar | Omarchy default |
+| `fcitx5` | Input method framework | Omarchy default |
+| `swayosd-server` | On-screen display (volume, brightness) | Omarchy default |
+| `polkit-gnome` | Authentication agent | Omarchy default |
+| `awww-daemon` | Wallpaper daemon | Omarchy default |
+| `omarchy-bg-slideshow` | Wallpaper cycling | Omarchy default |
 
 ## Lock System
 
@@ -138,8 +138,8 @@ Falls back to `product_uuid`, then `unknown`.
 | DMI product_name | Output slot |
 |-----------------|-------------|
 | `HP EliteBook 840 G3` | `HP_EliteBook_840_G3` |
-| `Macmini5,1` | `Macmini5_1` |
-| anything else | sanitized product_name |
+| `Macmini5,1` | `Apple_MacMini` (mapped) |
+| anything else | sanitized (non-alphanumeric → `_`) |
 
 Any machine with a valid DMI `product_name` gets a valid slot — fully portable.
 

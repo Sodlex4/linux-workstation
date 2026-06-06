@@ -81,8 +81,11 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 echo ""
-echo "==> Proceed with installation? (y/N)"
-read -r confirm
+echo "==> Proceed with installation? (y/N) [30s timeout]"
+if ! read -r -t 30 confirm; then
+    echo "==> Timed out. Aborted."
+    exit 1
+fi
 if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
     echo "==> Aborted."
     exit 0
