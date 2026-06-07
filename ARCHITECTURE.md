@@ -2,13 +2,17 @@
 
 ## Machines
 
-This repo covers two machines. Both run Arch Linux + Omarchy. The HP laptop uses
-hostname `omarchy` (Omarchy default), while the Mac Mini uses `apple-mac-mini`. They are differentiated by hardware:
+Machines are identified by their DMI `product_name` (sanitized: spaces → underscores).
+Currently tracked:
 
-| Machine | Vendor | Model | Role |
-|---------|--------|-------|------|
-| HP Laptop | Hewlett-Packard | HP EliteBook 840 G3 | Primary workstation |
-| Apple Mac Mini | Apple Inc. | Macmini5,1 | Secondary machine |
+| Slot | Machine | Role |
+|------|---------|------|
+| `HP_EliteBook_840_G3` | HP EliteBook 840 G3 | Primary workstation |
+| `Apple_MacMini` | Apple Mac Mini (Macmini5,1) | Secondary machine |
+
+New machines are auto-detected on first run — `install.sh` probes hardware and
+generates configs on the fly. See `lib/detect-machine.sh`, `lib/probe-hardware.sh`,
+`lib/auto-generate.sh`.
 
 ## Startup Flow
 
@@ -34,16 +38,16 @@ Hyprland reads `~/.config/hypr/hyprland.conf`, which layers configuration from t
 
 After Hyprland initializes, the following start via `exec-once`:
 
-| Service | Role |
-|---------|------|
-| `hypridle` | Idle daemon — manages screensaver, lock, display power |
-| `mako` | Notification daemon |
-| `waybar` | Status bar |
-| `fcitx5` | Input method framework |
-| `swayosd-server` | On-screen display (volume, brightness) |
-| `polkit-gnome` | Authentication agent |
-| `awww-daemon` | Wallpaper daemon |
-| `omarchy-bg-slideshow` | Wallpaper cycling |
+| Service | Role | Source |
+|---------|------|--------|
+| `hypridle` | Idle daemon — screensaver, lock, DPMS | Omarchy default |
+| `swaync` | Notification daemon | Omarchy default |
+| `waybar` | Status bar | Omarchy default |
+| `fcitx5` | Input method framework | Omarchy default |
+| `swayosd-server` | On-screen display (volume, brightness) | Omarchy default |
+| `polkit-gnome` | Authentication agent | Omarchy default |
+| `awww-daemon` | Wallpaper daemon | Omarchy default |
+| `omarchy-bg-slideshow` | Wallpaper cycling | Omarchy default |
 
 ## Lock System
 
@@ -72,12 +76,27 @@ hypridle (330s)  ──→  display off (dpms)
 
 ```
 linux-workstation/
-├── ARCHITECTURE.md          ← this file
-├── README.md                ← overview & install guide
-├── install.sh               ← symlink installer
+├── ARCHITECTURE.md              ← this file
+├── README.md                    ← overview & install guide
+├── MACHINES.md                  ← auto-generated machine inventory
+├── install.sh                   ← symlink installer (DMI-aware)
+├── bashrc                       ← shell aliases & config
+├── tmux.conf
+├── zshrc
+│
 ├── lib/
-│   └── detect-machine.sh    ← DMI-based machine detection
-├── bashrc                   ← shell aliases & config
+│   ├── detect-machine.sh        ← DMI-based machine detection
+│   ├── probe-hardware.sh        ← live JSON probe (monitors, input, GPU, distro)
+│   ├── auto-generate.sh         ← writes machine configs from probe data
+│   ├── error-log.sh             ← structured per-machine error tracking
+│   └── generate-machines.sh     ← generates MACHINES.md
+│
+├── packages/
+│   ├── install-packages.sh      ← auto-detect distro + install
+│   └── arch/
+│       ├── common.txt           ← base packages (all machines)
+│       ├── HP_EliteBook_840_G3.txt
+│       └── Apple_MacMini.txt
 │
 └── config/
     ├── alacritty/           ── terminal emulator
@@ -94,11 +113,11 @@ linux-workstation/
     │   ├── looknfeel.conf         ── appearance overrides
     │   ├── monitors.conf          ── display setup (shared fallback)
     │   ├── machine/
-    │   │   ├── hp/
+    │   │   ├── HP_EliteBook_840_G3/
     │   │   │   ├── autostart.conf ── startup apps (HP)
     │   │   │   ├── input.conf     ── input devices (HP)
     │   │   │   └── monitors.conf  ── display setup (HP)
-    │   │   └── macmini/
+    │   │   └── Apple_MacMini/
     │   │       ├── autostart.conf ── startup apps (Mac Mini)
     │   │       ├── input.conf     ── input devices (Mac Mini)
     │   │       └── monitors.conf  ── display setup (Mac Mini)
@@ -112,21 +131,21 @@ linux-workstation/
 
 ## Machine Detection
 
-Machine detection is handled by `lib/detect-machine.sh`, which reads DMI info
-from `/sys/class/dmi/id/product_name` and `sys_vendor`, falling back to
-`hostnamectl`. Checks product name first, then vendor:
+`lib/detect-machine.sh` reads DMI `product_name` from `/sys/class/dmi/id/product_name`,
+sanitizes it (spaces → underscores), and outputs the machine slot name.
+Falls back to `product_uuid`, then `unknown`.
 
-| Detection Source | Match | Output |
-|-----------------|-------|--------|
-| `product_name` | `HP EliteBook` | `hp` |
-| `product_name` | `Macmini` | `macmini` |
-| `sys_vendor` | `Apple Inc.` | `macmini` |
-| `sys_vendor` | `HP` / `Hewlett-Packard` | `hp` |
-| anything else | — | `unknown` |
+| DMI product_name | Output slot |
+|-----------------|-------------|
+| `HP EliteBook 840 G3` | `HP_EliteBook_840_G3` |
+| `Macmini5,1` | `Apple_MacMini` (mapped) |
+| anything else | sanitized (non-alphanumeric → `_`) |
+
+Any machine with a valid DMI `product_name` gets a valid slot — fully portable.
 
 ## Machine-Specific Config Overrides
 
-Machine-specific configs live in `config/<app>/machine/<name>/`. `install.sh`
+Machine-specific configs live in `config/<app>/machine/<slot>/`. `install.sh`
 links them in two passes:
 
 1. **Shared pass** — links all files under `config/` except `machine/` and
@@ -134,14 +153,32 @@ links them in two passes:
 2. **Machine override pass** — links files from `config/<app>/machine/<MACHINE>/`,
    overwriting the shared symlinks with machine-specific versions
 
-Example: On Mac Mini, `config/hypr/machine/macmini/monitors.conf` is linked to
-`~/.config/hypr/monitors.conf`, replacing the shared `monitors.conf` symlink.
+Example: On `HP_EliteBook_840_G3`, `config/hypr/machine/HP_EliteBook_840_G3/monitors.conf`
+is linked to `~/.config/hypr/monitors.conf`, replacing the shared fallback.
+
+For unknown machines, `install.sh` runs `auto-generate.sh` which probes hardware
+with `probe-hardware.sh` and writes `monitors.conf`, `input.conf`, `autostart.conf`.
 
 The full config priority order is:
 1. **Omarchy defaults** (lowest) — `~/.local/share/omarchy/default/`
 2. **Theme** — `~/.config/omarchy/current/theme/` (managed by `omarchy-theme-set`)
 3. **Shared user overrides** — `~/.config/<app>/<file>` (this repo)
 4. **Machine-specific overrides** (highest) — overwrites shared symlinks during install
+
+## Error Tracking
+
+Per-machine errors are tracked in `config/<app>/machine/<slot>/errors.json` via
+`lib/error-log.sh`. The `lib/generate-machines.sh` script reads these to produce
+[MACHINES.md](MACHINES.md), showing per-slot status with open issue counts.
+
+## Package Management
+
+Package lists live in `packages/<distro>/`:
+- `common.txt` — installed on every machine
+- `<slot>.txt` — machine-specific extras
+
+`packages/install-packages.sh` auto-detects distro, loads lists, and installs
+via the appropriate package manager (`pacman` on Arch, `apt` on Ubuntu/Debian).
 
 ## Known Issues
 

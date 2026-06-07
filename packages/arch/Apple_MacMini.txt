@@ -1,0 +1,5 @@
+# Apple Mac Mini — extra packages
+# Broadcom WiFi, Apple-specific
+
+broadcom-wl
+apple-bcm-firmware

@@ -5,7 +5,7 @@ export OMARCHY_PATH="$HOME/.local/share/omarchy"
 
 # All the default Omarchy aliases and functions
 # (don't mess with these directly, just overwrite them here!)
-source "$OMARCHY_PATH/default/bash/rc"
+[ -f ~/.local/share/omarchy/default/bash/rc ] && source ~/.local/share/omarchy/default/bash/rc
 
 # Add your own exports, aliases, and functions here.
 #

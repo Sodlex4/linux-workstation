@@ -1,67 +1,85 @@
 # linux-workstation
 
-Personal Linux configuration for two machines running Arch Linux on [Hyprland](https://hyprland.org/) via [Omarchy](https://omarchy.org/): an **HP EliteBook 840 G3** and an **Apple Mac Mini**.
+Portable OS config — clone on any Linux machine, auto-detect hardware, set up everything.
 
-## Machines
+[**Machine Inventory →**](MACHINES.md)
 
-This repo manages configs for two machines. The HP laptop uses hostname `omarchy` (Omarchy default), while the Mac Mini uses `apple-mac-mini`. They are differentiated by hardware via DMI detection:
+## How It Works
 
-| Machine | Vendor | Model | Role |
-|---------|--------|-------|------|
-| **HP Laptop** | HP | HP EliteBook 840 G3 | Primary workstation |
-| **Apple Mac Mini** | Apple Inc. | Macmini5,1 | Secondary machine |
+Every machine is identified by its DMI `product_name` (e.g. `HP_EliteBook_840_G3`).
+Configs live in per-machine slots under `config/<app>/machine/<slot>/`.
 
-Machine-specific configs live under `config/<app>/machine/<machine>/` and override shared configs at install time. See `lib/detect-machine.sh` for detection logic.
+| Slot | Machine | Role |
+|------|---------|------|
+| `HP_EliteBook_840_G3` | HP EliteBook 840 G3 | Primary workstation |
+| `Apple_MacMini` | Apple Mac Mini (Macmini5,1) | Secondary machine |
+
+On first run on an unknown machine, `install.sh` auto-generates `monitors.conf`, `input.conf`, and `autostart.conf` from live hardware probes — no manual editing needed.
+
+For the runtime startup flow — how configs layer from Omarchy defaults → theme → user overrides → autostart services — see [Architecture → Startup Flow](ARCHITECTURE.md#startup-flow).
+
+## Key Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `lib/detect-machine.sh` | Returns sanitized DMI product_name |
+| `lib/probe-hardware.sh` | Live JSON probe of monitors, input, GPU, distro |
+| `lib/auto-generate.sh <slot>` | Writes machine configs from probe data |
+| `lib/error-log.sh` | Structured per-machine error tracking (`errors.json`) |
+| `lib/generate-machines.sh` | Generates [MACHINES.md](MACHINES.md) inventory table |
+| `packages/install-packages.sh` | Auto-detect distro + install from package lists |
+| `install.sh` | Symlink all configs, detect stale links, auto-generate |
 
 For the runtime startup flow — how configs layer from Omarchy defaults → theme → user overrides → autostart services — see [Architecture → Startup Flow](ARCHITECTURE.md#startup-flow).
 
 ## Syncing Between Machines
 
-This repo is shared between the HP laptop and the Apple Mac Mini. Here's how config changes flow between them.
-
-### Editing a shared config (affects both machines)
-
-Shared configs are files **without** a `machine/` subdirectory — things like `config/waybar/style.css`, `config/starship.toml`, `config/hypr/bindings.conf`. When you edit one of these on either machine, the change applies to both.
-
-**Workflow:**
+### Editing a shared config (affects all machines)
 
 ```bash
 # On the machine where you made the change:
-cd ~/Work/linux-workstation
+cd ~/Projects/dotfiles
 git add -A
 git commit -m "describe what you changed and why"
 git push
 
 # On the other machine:
-cd ~/Work/linux-workstation
+cd ~/Projects/dotfiles
 git pull origin master
 ```
 
-Since the live config is a **symlink** pointing into the repo, editing the file in the repo changes it immediately. After `git pull` on the other machine, the symlink automatically points to the updated file — no `./install.sh` needed unless you added a **brand new file**.
-
 ### Editing a machine-specific config (affects one machine)
 
-Machine-specific files live in `config/<app>/machine/<name>/`. The naming tells you which machine they belong to:
+Files under `config/<app>/machine/<slot>/` apply only to that machine.
+Example:
 
-- `config/hypr/machine/hp/monitors.conf` → **HP only**
-- `config/hypr/machine/macmini/monitors.conf` → **Mac Mini only**
-- `config/hypr/machine/hp/input.conf` → **HP only**
-- `config/hypr/machine/macmini/input.conf` → **Mac Mini only**
-
-When you edit a file in `machine/hp/`, only the HP gets the change — the Mac Mini pulls the file but `install.sh` skips it (it only links files from `machine/macmini/`).
+- `config/hypr/machine/HP_EliteBook_840_G3/monitors.conf` → **HP only**
+- `config/hypr/machine/Apple_MacMini/input.conf` → **Mac Mini only**
 
 ### Adding a new config file
 
-If you add a new file (not just editing an existing one), run `./install.sh` on the other machine after pulling. This creates the new symlink and backs up any existing file with the same name.
+Run `./install.sh` on the other machine after pulling — it detects new files and creates symlinks.
 
-### Summary table
+## Adding a New Machine
 
-| You edit this... | HP sees the change? | Mac Mini sees the change? |
-|---|---|---|
-| `config/waybar/style.css` (shared) | Yes | Yes |
-| `config/hypr/machine/hp/monitors.conf` | Yes | No — HP‑only |
-| `config/hypr/machine/macmini/input.conf` | No — Mac Mini only | Yes |
-| A brand new shared file | After `./install.sh` | After `./install.sh` |
+1. Clone this repo on the new machine
+2. Run `./install.sh` — it auto-detects hardware and generates configs
+3. Review the generated configs in `config/hypr/machine/<slot>/`
+4. Commit and push the new machine slot
+
+## Package Installation
+
+```bash
+# See what would be installed
+./packages/install-packages.sh --dry-run
+
+# Install packages for this machine
+./packages/install-packages.sh
+```
+
+Package lists are in `packages/<distro>/`:
+- `common.txt` — base packages for all machines
+- `<slot>.txt` — per-machine extras
 
 ## Components
 
@@ -84,27 +102,23 @@ If you add a new file (not just editing an existing one), run `./install.sh` on 
 | **Git** | `config/git/config` — git configuration |
 | **Bash** | `bashrc` — shell aliases and config |
 
-## Theme
-
-Current theme: **Tokyo Night** (managed by Omarchy)
-
 ## Installation
 
 ```bash
-# Clone to ~/Projects/dotfiles (or wherever you keep it)
 git clone https://github.com/Sodlex4/linux-workstation.git ~/Projects/dotfiles
-
-# Run the install script to symlink configs
 cd ~/Projects/dotfiles
 ./install.sh
 ```
 
-The install script will:
-1. Back up any existing files in `~/.config/` that aren't already symlinks
-2. Create symlinks pointing from `~/.config/<app>/<file>` to the repo files
-3. Symlink `~/.bashrc` to the repo's `bashrc`
-4. Skip any files already symlinked to the repo
+The install script auto-detects your machine via DMI, symlinks shared + machine-specific configs, and auto-generates configs for unrecognized machines. Existing files are backed up before replacement.
 
-## Note
+```bash
+# Optional: install packages for this machine
+./packages/install-packages.sh
+```
 
-Some configs import theme-dependent files from `~/.config/omarchy/current/theme/` (e.g. colors, wallpapers). These are managed by `omarchy-theme-set` and are not tracked here.
+## Theme
+
+Current theme: **Tokyo Night** (managed by Omarchy).
+
+Some configs import theme files from `~/.config/omarchy/current/theme/` (colors, wallpapers). These are managed by `omarchy-theme-set` and are not tracked here.

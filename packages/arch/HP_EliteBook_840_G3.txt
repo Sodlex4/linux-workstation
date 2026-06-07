@@ -1,0 +1,7 @@
+# HP EliteBook 840 G3 — extra packages
+# Intel graphics, laptop-specific
+
+intel-media-driver
+vulkan-intel
+thermald
+tlp
