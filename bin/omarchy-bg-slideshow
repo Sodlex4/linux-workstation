@@ -1,0 +1,75 @@
+#!/bin/bash
+
+INTERVAL=600
+
+cleanup() {
+  exit 0
+}
+
+trap cleanup SIGTERM SIGINT
+
+get_next_background() {
+  local theme_name current_bg backgrounds total index next_index new_bg
+
+  theme_name=$(cat "$HOME/.config/omarchy/current/theme.name" 2>/dev/null)
+  THEME_BACKGROUNDS_PATH="$HOME/.config/omarchy/current/theme/backgrounds/"
+  USER_BACKGROUNDS_PATH="$HOME/.config/omarchy/backgrounds/$theme_name/"
+  CURRENT_BACKGROUND_LINK="$HOME/.config/omarchy/current/background"
+
+  mapfile -d '' -t backgrounds < <(find -L "$USER_BACKGROUNDS_PATH" "$THEME_BACKGROUNDS_PATH" -maxdepth 1 -type f -print0 2>/dev/null | sort -z)
+  total=${#backgrounds[@]}
+
+  if (( total == 0 )); then
+    echo ""
+    return
+  fi
+
+  if [[ -L $CURRENT_BACKGROUND_LINK ]]; then
+    current_bg=$(readlink "$CURRENT_BACKGROUND_LINK")
+  else
+    current_bg=""
+  fi
+
+  index=-1
+  for i in "${!backgrounds[@]}"; do
+    if [[ ${backgrounds[$i]} == "$current_bg" ]]; then
+      index=$i
+      break
+    fi
+  done
+
+  if (( index == -1 )); then
+    echo "${backgrounds[0]}"
+  else
+    next_index=$(((index + 1) % total))
+    echo "${backgrounds[$next_index]}"
+  fi
+}
+
+set_background_awww() {
+  awww img "$1" --transition-type simple >/dev/null 2>&1
+}
+
+set_background_swaybg() {
+  local bg="$1"
+  ln -nsf "$bg" "$HOME/.config/omarchy/current/background"
+  pkill -x swaybg 2>/dev/null
+  setsid uwsm-app -- swaybg -i "$HOME/.config/omarchy/current/background" -m fill >/dev/null 2>&1 &
+}
+
+if command -v awww &>/dev/null; then
+  set_bg=set_background_awww
+elif command -v swaybg &>/dev/null; then
+  set_bg=set_background_swaybg
+else
+  echo "No wallpaper daemon found (need awww or swaybg)" >&2
+  exit 1
+fi
+
+while true; do
+  next=$(get_next_background)
+  if [[ -n $next ]]; then
+    "$set_bg" "$next"
+  fi
+  sleep "$INTERVAL"
+done

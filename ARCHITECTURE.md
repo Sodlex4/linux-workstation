@@ -218,6 +218,24 @@ is supposed to handle this automatically in future versions.
 - Full fingerprint: `40DFB630FF42BCFFB047046CF0134EE680CAC571`
 - UID: `Omarchy <pkgs@omarchy.org>`
 
+#### Wallpaper slideshow script missing
+
+**Symptom:** `uwsm-app` error on Hyprland startup:
+```
+path /home/odonde/.local/bin/omarchy-bg-slideshow does not exist
+```
+
+**Scope:** All machines — both the HP and Mac Mini autostart configs reference
+`omarchy-bg-slideshow` for wallpaper cycling.
+
+**Cause:** The autostart config (`config/hypr/machine/<slot>/autostart.conf`) runs
+`omarchy-bg-slideshow` at startup, but the script was never tracked in the repo
+or deployed to `~/.local/bin/`.
+
+**Fix:** The script is now at `bin/omarchy-bg-slideshow` in the repo.
+Run `./install.sh` to create a symlink at `~/.local/bin/omarchy-bg-slideshow`.
+Future `git pull` + `./install.sh` on any machine will deploy it automatically.
+
 ### Shared (both machines)
 
 #### Hyprland 0.55 Config Breaking Changes

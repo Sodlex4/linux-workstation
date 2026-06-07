@@ -191,6 +191,27 @@ else
 fi
 
 echo ""
+echo "--- Local bin scripts ---"
+mkdir -p "$HOME/.local/bin"
+find "$REPO_DIR/bin" -type f | sort | while IFS= read -r file; do
+    local target="$HOME/.local/bin/$(basename "$file")"
+    local name="$(basename "$file")"
+
+    if [ -L "$target" ] && [ "$(readlink "$target")" = "$file" ]; then
+        echo "  ✓ Already linked: $name"
+        continue
+    fi
+
+    if [ -e "$target" ] || [ -L "$target" ]; then
+        cp -a "$target" "$BACKUP_DIR/$(basename "$target")"
+        echo "  → Backed up: $name"
+    fi
+
+    ln -sf "$file" "$target"
+    echo "  → Linked: $name"
+done
+
+echo ""
 echo "--- Home files ---"
 find "$REPO_DIR" -maxdepth 1 -type f ! -name 'install.sh' ! -name '.gitignore' ! -name 'README.md' ! -name 'ARCHITECTURE.md' | sort | while IFS= read -r file; do
     link_home "$file"

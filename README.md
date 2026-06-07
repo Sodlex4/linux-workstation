@@ -13,6 +13,8 @@ This repo manages configs for two machines. The HP laptop uses hostname `omarchy
 
 Machine-specific configs live under `config/<app>/machine/<machine>/` and override shared configs at install time. See `lib/detect-machine.sh` for detection logic.
 
+For the runtime startup flow — how configs layer from Omarchy defaults → theme → user overrides → autostart services — see [Architecture → Startup Flow](ARCHITECTURE.md#startup-flow).
+
 ## Syncing Between Machines
 
 This repo is shared between the HP laptop and the Apple Mac Mini. Here's how config changes flow between them.
