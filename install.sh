@@ -27,6 +27,10 @@ check_stale_symlinks() {
 
 check_stale_symlinks
 
+echo ""
+echo "--- Checking dependencies ---"
+bash "$REPO_DIR/lib/check-deps.sh" || true
+
 if [ "$MACHINE" = "unknown" ]; then
     echo "==> Machine not recognized. Probing hardware..."
     bash "$REPO_DIR/lib/probe-hardware.sh"

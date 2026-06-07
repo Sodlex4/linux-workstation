@@ -29,3 +29,4 @@ cliphist
 wl-clipboard
 jq
 python
+awww
