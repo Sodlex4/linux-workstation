@@ -28,9 +28,7 @@ For the runtime startup flow — how configs layer from Omarchy defaults → the
 | `lib/error-log.sh` | Structured per-machine error tracking (`errors.json`) |
 | `lib/generate-machines.sh` | Generates [MACHINES.md](MACHINES.md) inventory table |
 | `packages/install-packages.sh` | Auto-detect distro + install from package lists |
-| `install.sh` | Symlink all configs, detect stale links, auto-generate |
-
-For the runtime startup flow — how configs layer from Omarchy defaults → theme → user overrides → autostart services — see [Architecture → Startup Flow](ARCHITECTURE.md#startup-flow).
+ | `install.sh` | Symlink all configs, detect stale links, auto-generate |
 
 ## Syncing Between Machines
 
