@@ -58,6 +58,34 @@ command_to_package() {
 
 MISSING=false
 
+check_cursor_theme() {
+  local theme_file="$1"
+  local label="$2"
+  local theme
+
+  if [ ! -f "$theme_file" ]; then
+    return
+  fi
+
+  while IFS= read -r line; do
+    trimmed="${line## }"
+    [[ $trimmed == '#'* ]] && continue
+    if [[ $trimmed == env\ =\ XCURSOR_THEME,* ]]; then
+      theme="${trimmed#env = XCURSOR_THEME,}"
+      theme="${theme%%#*}"
+      theme="${theme## }"
+      theme="${theme%% }"
+      [ -z "$theme" ] && continue
+      if [ ! -d "/usr/share/icons/$theme" ] && [ ! -d "$HOME/.local/share/icons/$theme" ] && [ ! -d "$HOME/.icons/$theme" ]; then
+        $QUIET || echo "  ⚠ Cursor theme not installed: $theme"
+        $QUIET || echo "    Install: sudo pacman -S ${theme,,}  (or AUR: yay -S ${theme,,})"
+        $QUIET || echo "    Referenced in: $label"
+        MISSING=true
+      fi
+    fi
+  done < "$theme_file"
+}
+
 check_autostart() {
   local autostart_file="$1"
   local label="$2"
@@ -118,6 +146,15 @@ omarchy_default="$HOME/.local/share/omarchy/default/hypr/autostart.conf"
 if [ -f "$omarchy_default" ]; then
   check_autostart "$omarchy_default" "omarchy default autostart"
 fi
+
+$QUIET || echo ""
+$QUIET || echo "--- Checking cursor themes ---"
+for f in "$REPO_DIR/config/hypr/machine/$MACHINE/input.conf" \
+         "$REPO_DIR/config/hypr/input.conf" \
+         "$REPO_DIR/config/hypr/omarchy-defaults/envs.conf" \
+         "$HOME/.local/share/omarchy/default/hypr/envs.conf"; do
+  check_cursor_theme "$f" "${f#$REPO_DIR/}"
+done
 
 if $MISSING; then
   $QUIET || echo ""

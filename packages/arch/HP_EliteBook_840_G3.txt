@@ -5,3 +5,4 @@ intel-media-driver
 vulkan-intel
 thermald
 tlp
+bibata-cursor-theme
