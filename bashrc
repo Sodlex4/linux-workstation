@@ -13,6 +13,7 @@ export OMARCHY_PATH="$HOME/.local/share/omarchy"
 # alias p='python'
 # alias cx="claude --permission-mode=plan --allow-dangerously-skip-permissions"
 
+alias c='opencode'
 alias dev='cd ~/dev'
 alias dev-web='cd ~/dev/web'
 alias dev-java='cd ~/dev/java'
@@ -22,3 +23,5 @@ alias dev-scripts='cd ~/dev/scripts'
 alias dev-notes='cd ~/dev/notes'
 alias dev-work='cd ~/dev/work'
 export PATH="$HOME/.local/bin:$PATH"
+export PATH="$PATH:/snap/bin"
+export PATH="$PATH:/var/lib/snapd/snap/bin"
