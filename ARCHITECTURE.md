@@ -21,12 +21,12 @@ from three sources:
 
 ```
 ┌──────────────────────────────────────────────────┐
-│ 1. Omarchy Defaults (~/.local/share/omarchy/)    │
+│ 1. Omarchy Defaults (/usr/share/omarchy/)       │
 │    envs.lua, input.lua, windows.lua              │
 │    looknfeel.lua, autostart.lua                  │
 │    bindings/ (media, clipboard, tiling, utils)   │
 ├──────────────────────────────────────────────────┤
-│ 2. Theme (~/.config/omarchy/current/theme/)      │
+│ 2. Theme (~/.local/state/omarchy/current/theme/)│
 │    Colors, backgrounds, hyprlock theme           │
 ├──────────────────────────────────────────────────┤
 │ 3. User Overrides (~/dev/projects/dotfiles)      │
@@ -161,17 +161,24 @@ links them in two passes:
 2. **Machine override pass** — links files from `config/<app>/machine/<MACHINE>/`,
    overwriting the shared symlinks with machine-specific versions
 
-Example: On `HP_EliteBook_840_G3`, `config/hypr/machine/HP_EliteBook_840_G3/monitors.conf`
-is linked to `~/.config/hypr/monitors.conf`, replacing the shared fallback.
+Example: on `HP_EliteBook_840_G3`, `config/hypr/machine/HP_EliteBook_840_G3/monitors.lua`
+is linked to `~/.config/hypr/monitors.lua`, replacing the shared version.
 
-For unknown machines, `install.sh` runs `auto-generate.sh` which probes hardware
-with `probe-hardware.sh` and writes `monitors.conf`, `input.conf`, `autostart.conf`.
+Both slots are currently empty, so every machine uses the shared config. To add
+overrides, run `./lib/auto-generate.sh <slot>` manually. `install.sh` does not
+auto-generate, because a generated `monitors.lua` pins a specific output name
+and would override the machine-neutral shared one (`output = ""`,
+`mode = "preferred"`) that adapts to any display.
 
 The full config priority order is:
-1. **Omarchy defaults** (lowest) — `~/.local/share/omarchy/default/`
-2. **Theme** — `~/.config/omarchy/current/theme/` (managed by `omarchy-theme-set`)
+1. **Omarchy defaults** (lowest) — `/usr/share/omarchy/default/`
+2. **Theme** — `~/.local/state/omarchy/current/theme/` (managed by `omarchy-theme-set`)
 3. **Shared user overrides** — `~/.config/<app>/<file>` (this repo)
 4. **Machine-specific overrides** (highest) — overwrites shared symlinks during install
+
+Note on paths: quattro moved Omarchy from `~/.local/share/omarchy` to
+`/usr/share/omarchy` and from `~/.config/omarchy/current` to
+`~/.local/state/omarchy/current`. This repo targets the quattro layout.
 
 ## Error Tracking
 
@@ -290,20 +297,21 @@ Future `git pull` + `./install.sh` on any machine will deploy it automatically.
 - `config option <dwindle:pseudotile> does not exist` (line 111)
 
 **Cause:** Hyprland 0.55 introduced two breaking changes that Omarchy's default
-`looknfeel.conf` didn't account for:
+`looknfeel` config didn't account for:
 1. `-1` removed as a "use default" color sentinel — gradient parser rejects it
 2. `dwindle:pseudotile` option removed entirely (was a no-op)
 
 **Fix applied 2026-05-27:**
 - Lines 53–54: `col.border_locked_active/inactive = -1` → `$activeBorderColor` / `$inactiveBorderColor`
 - Line 111: Removed `pseudotile = true`
-- User override in `~/.config/hypr/looknfeel.conf` adds a `group {}` block as a safety net
+- User override in `config/hypr/looknfeel.lua` adds a `group {}` block as a safety net
 
 **Upstream tracking:**
 - [omarchy#5870](https://github.com/basecamp/omarchy/issues/5870) — Config incompatibility with Hyprland 0.55
 - [omarchy#5752](https://github.com/basecamp/omarchy/issues/5752) — Hyprland 0.55 config errors on startup
 - [omarchy#5820](https://github.com/basecamp/omarchy/issues/5820) — Various 0.55.0 defaults breakage
 
-**Warning:** The default file at `~/.local/share/omarchy/default/hypr/looknfeel.conf` is
-now a symlink tracked by this repo (`config/hypr/omarchy-defaults/looknfeel.conf`).
-`omarchy-update` may warn about the non-regular file but will not overwrite it.
+**Note:** `config/hypr/omarchy-defaults/` holds snapshots of Omarchy's own
+upstream defaults, kept for reference and for `lib/check-deps.sh`.
+`install.sh` explicitly skips this directory, so these files are never linked
+into `~/.config/` and cannot shadow Omarchy's real defaults.

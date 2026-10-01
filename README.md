@@ -1,20 +1,62 @@
 # linux-workstation
 
-Portable OS config — clone on any Linux machine, auto-detect hardware, set up everything.
+Portable Omarchy config — clone on any machine running Omarchy, symlink everything into place.
 
 [**Machine Inventory →**](MACHINES.md)
 
+## Requirements
+
+Omarchy **quattro** or newer (the Lua-config generation). Verify with:
+
+```bash
+omarchy-version
+```
+
+Older Omarchy reads `hypr/*.conf` and cannot use this repo — see
+[Omarchy Versions](#omarchy-versions) below.
+
 ## How It Works
 
-Every machine is identified by its DMI `product_name` (e.g. `HP_EliteBook_840_G3`).
-Configs live in per-machine slots under `config/<app>/machine/<slot>/`.
+`install.sh` symlinks every file under `config/` into `~/.config/`, plus repo
+root files into `~/`. Existing files are backed up first.
+
+The Hyprland config in this repo is **machine-neutral**: `monitors.lua` uses
+`output = ""` with `mode = "preferred"`, so it adapts to whatever display is
+attached. One set of files serves every machine.
+
+Machines are still identified by DMI `product_name` (e.g. `HP_EliteBook_840_G3`),
+and optional overrides can live in `config/<app>/machine/<slot>/`.
 
 | Slot | Machine | Role |
 |------|---------|------|
 | `HP_EliteBook_840_G3` | HP EliteBook 840 G3 | Primary workstation |
 | `Apple_MacMini` | Apple Mac Mini (Macmini5,1) | Secondary machine |
 
-On first run on an unknown machine, `install.sh` auto-generates `monitors.lua`, `input.lua`, and `autostart.lua` from live hardware probes — no manual editing needed.
+Both slots are currently **empty**. To generate hardware-probed overrides for a
+machine, run `./lib/auto-generate.sh <slot>` yourself and review them before
+committing — `install.sh` deliberately does not auto-generate, because
+generated monitors pin an output name and would override the portable shared
+config.
+
+### Omarchy Versions
+
+| Omarchy | Hyprland config | Usable here |
+|---------|-----------------|-------------|
+| quattro+ | Lua (`*.lua`) | yes |
+| pre-quattro | `.conf` | no — needs its own config |
+
+Upgrading an older machine:
+
+```bash
+omarchy-upgrade-to-quattro   # then reboot
+git pull origin master
+./install.sh
+```
+
+Upgrade **before** pulling. The upgrade script writes its own defaults into
+`~/.config/hypr/` and backs up anything it replaces with a
+`.omarchy-upgrade-to-quattro.<timestamp>.bak` suffix, so linking the repo
+first can result in those defaults overwriting your symlinks.
 
 For the runtime startup flow — how configs layer from Omarchy defaults → theme → user overrides → autostart services — see [Architecture → Startup Flow](ARCHITECTURE.md#startup-flow).
 
@@ -48,14 +90,19 @@ git pull origin master
 
 ### Editing a machine-specific config (affects one machine)
 
-Files under `config/<app>/machine/<slot>/` apply only to that machine.
-Example:
+Files under `config/<app>/machine/<slot>/` apply only to that machine, and take
+precedence over the shared file of the same name. Both slots are currently
+empty, so everything comes from `config/`.
 
-- `config/hypr/machine/HP_EliteBook_840_G3/autostart.conf` → **HP only**
-- `config/hypr/machine/Apple_MacMini/input.lua` → **Mac Mini only**
+To add an override:
+
+```bash
+./lib/auto-generate.sh HP_EliteBook_840_G3   # writes monitors/input/autostart .lua
+./install.sh                                  # links them, they now win
+```
 
 Hyprland's compositor overrides (`monitors`, `input`, `bindings`, `looknfeel`,
-`autostart`) are shared `config/hypr/*.lua` files — Omarchy 4 loads Hyprland
+`autostart`) are shared `config/hypr/*.lua` files — Omarchy loads Hyprland
 config through Lua, so `.conf` extensions only apply to the daemon configs
 (`hyprlock`, `hypridle`, `hyprpaper`, `hyprsunset`, `xdph`).
 
@@ -117,7 +164,7 @@ cd ~/Projects/dotfiles
 ./install.sh
 ```
 
-The install script auto-detects your machine via DMI, symlinks shared + machine-specific configs, and auto-generates configs for unrecognized machines. Existing files are backed up before replacement.
+The install script detects your machine via DMI and symlinks every config file into `~/.config/`, along with any machine-specific overrides found for that slot. Existing files are backed up to `~/.config/dotfiles-backup-<timestamp>/` before replacement. It is safe to re-run: files already linked correctly are skipped.
 
 ```bash
 # Optional: install packages for this machine
@@ -128,4 +175,9 @@ The install script auto-detects your machine via DMI, symlinks shared + machine-
 
 Current theme: **Tokyo Night** (managed by Omarchy).
 
-Some configs import theme files from `~/.config/omarchy/current/theme/` (colors, wallpapers). These are managed by `omarchy-theme-set` and are not tracked here.
+Some configs import theme files from `~/.local/state/omarchy/current/theme/`
+(colors, wallpapers). These are managed by `omarchy-theme-set` and are not
+tracked here.
+
+Quattro moved the theme from `~/.config/omarchy/current` to
+`~/.local/state/omarchy/current`; this repo targets the new path.

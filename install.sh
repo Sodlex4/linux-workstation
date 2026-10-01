@@ -131,16 +131,11 @@ if [ "$MACHINE" != "unknown" ]; then
             done
         done
     else
-        echo "  No configs found for $MACHINE — auto-generating..."
-        bash "$REPO_DIR/lib/auto-generate.sh" "$MACHINE"
-        machine_dirs=$(find "$REPO_DIR/config" -path "*/machine/$MACHINE" -type d 2>/dev/null || true)
-        if [ -n "$machine_dirs" ]; then
-            echo "$machine_dirs" | while IFS= read -r machine_dir; do
-                find "$machine_dir" -type f ! -name 'errors.json' | sort | while IFS= read -r file; do
-                    link_machine_config "$file" "$MACHINE"
-                done
-            done
-        fi
+        # Shared config/hypr/*.lua is machine-neutral: monitors.lua uses
+        # output="" with mode="preferred", so it adapts to any display. Do NOT
+        # auto-generate here — generated files pin a monitor output name and
+        # would override the shared, portable version.
+        echo "  No overrides for $MACHINE — using shared Hyprland config (machine-neutral)."
     fi
 else
     echo "  Unknown machine — using shared configs only"

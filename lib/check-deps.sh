@@ -149,10 +149,10 @@ fi
 
 $QUIET || echo ""
 $QUIET || echo "--- Checking cursor themes ---"
-for f in "$REPO_DIR/config/hypr/machine/$MACHINE/input.conf" \
-         "$REPO_DIR/config/hypr/input.conf" \
-         "$REPO_DIR/config/hypr/omarchy-defaults/envs.conf" \
-         "$HOME/.local/share/omarchy/default/hypr/envs.conf"; do
+for f in "$REPO_DIR/config/hypr/machine/$MACHINE/input.lua" \
+         "$REPO_DIR/config/hypr/input.lua" \
+         "$REPO_DIR/config/hypr/omarchy-defaults/envs.lua" \
+         "/usr/share/omarchy/default/hypr/envs.lua"; do
   check_cursor_theme "$f" "${f#$REPO_DIR/}"
 done
 
