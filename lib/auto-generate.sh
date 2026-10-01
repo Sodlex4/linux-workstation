@@ -19,9 +19,9 @@ mkdir -p "$MACHINE_DIR"
 PROBE=$(bash "$REPO_DIR/lib/probe-hardware.sh")
 
 generate_monitors_conf() {
-    local file="$MACHINE_DIR/monitors.conf"
+    local file="$MACHINE_DIR/monitors.lua"
     if [ -f "$file" ]; then
-        echo "  ✓ monitors.conf already exists — skipping"
+        echo "  ✓ monitors.lua already exists — skipping"
         return
     fi
 
@@ -44,31 +44,31 @@ for m in mons:
 
     if [ "$monitors" = "empty" ]; then
         cat > "$file" << 'MONITOR_EOF'
-# Auto-generated monitor config — no monitors detected during probe.
-# Edit or re-run install.sh after connecting displays.
-# Syntax: monitor=<name>,<resolution>@<refresh>,<position>,<scale>
+-- Auto-generated monitor config — no monitors detected during probe.
+-- Edit or re-run install.sh after connecting displays.
 
-env = GDK_SCALE,1
-monitor=,preferred,auto,1
+hl.env("GDK_SCALE", "1")
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
 MONITOR_EOF
     else
         cat > "$file" << MONITOR_EOF
-# Auto-generated from hardware probe
-env = GDK_SCALE,1
+-- Auto-generated from hardware probe
+
+hl.env("GDK_SCALE", "1")
 $(echo "$monitors" | while read -r line; do
     name=$(echo "$line" | awk '{print $1}')
     res=$(echo "$line" | awk '{print $2}')
-    echo "monitor=$name,${res},auto,1"
+    echo "hl.monitor({ output = \"$name\", mode = \"${res}\", position = \"auto\", scale = 1 })"
 done)
 MONITOR_EOF
     fi
-    echo "  → Created monitors.conf"
+    echo "  → Created monitors.lua"
 }
 
 generate_input_conf() {
-    local file="$MACHINE_DIR/input.conf"
+    local file="$MACHINE_DIR/input.lua"
     if [ -f "$file" ]; then
-        echo "  ✓ input.conf already exists — skipping"
+        echo "  ✓ input.lua already exists — skipping"
         return
     fi
 
@@ -76,9 +76,9 @@ generate_input_conf() {
     has_touchpad=$(echo "$PROBE" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
-devices = data.get('input', {})
-touchpads = devices.get('touchpads', [])
-if touchpads:
+devices = data.get('input') or {}
+mice = devices.get('mice') or [] if isinstance(devices, dict) else []
+if any('touchpad' in (m.get('name') or '').lower() for m in mice):
     print('yes')
 else:
     print('no')
@@ -86,45 +86,52 @@ else:
 
     if [ "$has_touchpad" = "yes" ]; then
         cat > "$file" << 'INPUT_EOF'
-# Auto-generated input config (touchpad detected)
-input {
-    kb_layout = us
-    repeat_rate = 40
-    repeat_delay = 600
-    numlock_by_default = true
-    touchpad {
-        natural_scroll = true
-        clickfinger_behavior = true
-        scroll_factor = 0.4
-    }
-}
+-- Auto-generated input config (touchpad detected)
+
+hl.config({
+  input = {
+    kb_layout = "us",
+    repeat_rate = 40,
+    repeat_delay = 600,
+    numlock_by_default = true,
+    touchpad = {
+      natural_scroll = true,
+      clickfinger_behavior = true,
+      scroll_factor = 0.4,
+    },
+  },
+})
 INPUT_EOF
     else
         cat > "$file" << 'INPUT_EOF'
-# Auto-generated input config (no touchpad detected)
-input {
-    kb_layout = us
-    repeat_rate = 40
-    repeat_delay = 600
-    numlock_by_default = true
-}
+-- Auto-generated input config (no touchpad detected)
+
+hl.config({
+  input = {
+    kb_layout = "us",
+    repeat_rate = 40,
+    repeat_delay = 600,
+    numlock_by_default = true,
+  },
+})
 INPUT_EOF
     fi
-    echo "  → Created input.conf"
+    echo "  → Created input.lua"
 }
 
 generate_autostart_conf() {
-    local file="$MACHINE_DIR/autostart.conf"
+    local file="$MACHINE_DIR/autostart.lua"
     if [ -f "$file" ]; then
-        echo "  ✓ autostart.conf already exists — skipping"
+        echo "  ✓ autostart.lua already exists — skipping"
         return
     fi
 
     cat > "$file" << 'AUTOSTART_EOF'
-# Auto-generated autostart config
-exec-once = uwsm-app -- awww-daemon
+-- Auto-generated autostart config
+
+o.launch_on_start("awww-daemon")
 AUTOSTART_EOF
-    echo "  → Created autostart.conf"
+    echo "  → Created autostart.lua"
 }
 
 echo "==> Auto-generating configs for: $MACHINE"

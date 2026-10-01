@@ -14,7 +14,7 @@ Configs live in per-machine slots under `config/<app>/machine/<slot>/`.
 | `HP_EliteBook_840_G3` | HP EliteBook 840 G3 | Primary workstation |
 | `Apple_MacMini` | Apple Mac Mini (Macmini5,1) | Secondary machine |
 
-On first run on an unknown machine, `install.sh` auto-generates `monitors.conf`, `input.conf`, and `autostart.conf` from live hardware probes — no manual editing needed.
+On first run on an unknown machine, `install.sh` auto-generates `monitors.lua`, `input.lua`, and `autostart.lua` from live hardware probes — no manual editing needed.
 
 For the runtime startup flow — how configs layer from Omarchy defaults → theme → user overrides → autostart services — see [Architecture → Startup Flow](ARCHITECTURE.md#startup-flow).
 
@@ -51,8 +51,13 @@ git pull origin master
 Files under `config/<app>/machine/<slot>/` apply only to that machine.
 Example:
 
-- `config/hypr/machine/HP_EliteBook_840_G3/monitors.conf` → **HP only**
-- `config/hypr/machine/Apple_MacMini/input.conf` → **Mac Mini only**
+- `config/hypr/machine/HP_EliteBook_840_G3/autostart.conf` → **HP only**
+- `config/hypr/machine/Apple_MacMini/input.lua` → **Mac Mini only**
+
+Hyprland's compositor overrides (`monitors`, `input`, `bindings`, `looknfeel`,
+`autostart`) are shared `config/hypr/*.lua` files — Omarchy 4 loads Hyprland
+config through Lua, so `.conf` extensions only apply to the daemon configs
+(`hyprlock`, `hypridle`, `hyprpaper`, `hyprsunset`, `xdph`).
 
 ### Adding a new config file
 
@@ -83,22 +88,26 @@ Package lists are in `packages/<distro>/`:
 
 | Component | Config |
 |-----------|--------|
-| **Hyprland** | `config/hypr/` — window manager (user overrides) |
+| **Hyprland** | `config/hypr/*.lua` — compositor (user overrides; Omarchy 4 loads Lua) |
 | | `config/hypr/omarchy-defaults/` — Omarchy default keybindings & settings |
 | **Hyprlock** | `config/hypr/hyprlock.conf` — lock screen |
 | **Hypridle** | `config/hypr/hypridle.conf` — idle management daemon |
-| **Waybar** | `config/waybar/` — status bar |
+| **Hyprpaper** | `config/hypr/hyprpaper.conf` — wallpaper daemon |
+| **Hyprsunset** | `config/hypr/hyprsunset.conf` — blue-light filter |
 | **Alacritty** | `config/alacritty/` — terminal emulator |
 | **Kitty** | `config/kitty/` — terminal emulator |
 | **Ghostty** | `config/ghostty/` — terminal emulator |
-| **Walker** | `config/walker/` — app launcher |
-| **SwayOSD** | `config/swayosd/` — on-screen display |
 | **Starship** | `config/starship.toml` — shell prompt |
 | **Btop** | `config/btop/` — system monitor |
 | **Fastfetch** | `config/fastfetch/` — system info |
 | **Lazygit** | `config/lazygit/` — git TUI |
 | **Git** | `config/git/config` — git configuration |
+| **OpenCode** | `config/opencode/` — agent client config |
 | **Bash** | `bashrc` — shell aliases and config |
+
+> **Note:** the status bar, app launcher, and OSD are provided by Omarchy's
+> Quickshell shell, not by this repo. Waybar, Walker, and SwayOSD configs were
+> removed when the desktop moved to Omarchy.
 
 ## Installation
 

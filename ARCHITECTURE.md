@@ -16,23 +16,29 @@ generates configs on the fly. See `lib/detect-machine.sh`, `lib/probe-hardware.s
 
 ## Startup Flow
 
-Hyprland reads `~/.config/hypr/hyprland.conf`, which layers configuration from three sources:
+Hyprland reads `~/.config/hypr/hyprland.lua`, which layers configuration
+from three sources:
 
 ```
 ┌──────────────────────────────────────────────────┐
-│ 1. Omarchy Defaults (~/.local/share/omarchy/)   │
-│    envs.conf, input.conf, windows.conf           │
-│    looknfeel.conf, autostart.conf                │
+│ 1. Omarchy Defaults (~/.local/share/omarchy/)    │
+│    envs.lua, input.lua, windows.lua              │
+│    looknfeel.lua, autostart.lua                  │
 │    bindings/ (media, clipboard, tiling, utils)   │
 ├──────────────────────────────────────────────────┤
 │ 2. Theme (~/.config/omarchy/current/theme/)      │
 │    Colors, backgrounds, hyprlock theme           │
 ├──────────────────────────────────────────────────┤
-│ 3. User Overrides (~/.config/hypr/)              │
-│    monitors.conf, input.conf, bindings.conf      │
-│    looknfeel.conf, autostart.conf                │
+│ 3. User Overrides (~/dev/projects/dotfiles)      │
+│    config/hypr/hyprland.lua                      │
+│      requires monitors, input, bindings,         │
+│              looknfeel, autostart (.lua)         │
 └──────────────────────────────────────────────────┘
 ```
+
+In Lua, each `require`d module is a file named after it: `require("monitors")`
+loads `config/hypr/monitors.lua`. Daemons (hyprlock, hypridle, hyprpaper,
+hyprsunset, xdph) still read plain `.conf` files.
 
 ### Service Autostart (in order)
 
@@ -42,12 +48,14 @@ After Hyprland initializes, the following start via `exec-once`:
 |---------|------|--------|
 | `hypridle` | Idle daemon — screensaver, lock, DPMS | Omarchy default |
 | `swaync` | Notification daemon | Omarchy default |
-| `waybar` | Status bar | Omarchy default |
+| `quickshell` | Status bar, launcher, OSD | Omarchy default |
 | `fcitx5` | Input method framework | Omarchy default |
-| `swayosd-server` | On-screen display (volume, brightness) | Omarchy default |
 | `polkit-gnome` | Authentication agent | Omarchy default |
-| `awww-daemon` | Wallpaper daemon | Omarchy default |
-| `omarchy-bg-slideshow` | Wallpaper cycling | Omarchy default |
+| `hyprpaper` | Wallpaper daemon | Omarchy default |
+| `awww-daemon` | Wallpaper cycling (this repo, `autostart.lua`) | `config/hypr/autostart.lua` |
+| `omarchy-bg-slideshow` | Wallpaper cycling | `config/hypr/autostart.lua` |
+| `alacritty + tmux dev` | Dev terminal session | `config/hypr/autostart.lua` |
+| `alacritty + nvim` | Editor terminal | `config/hypr/autostart.lua` |
 
 ## Lock System
 
@@ -57,7 +65,7 @@ Super+Ctrl+L  ──→  omarchy-lock-screen  ──→  hyprlock
                     ├── Locks 1Password
                     └── Stops screensaver
 
-hypridle (151s)  ──→  loginctl lock-session  ──→  hyprlock
+hypridle (151s)  ──→  omarchy-system-lock    ──→  hyprlock
 hypridle (330s)  ──→  display off (dpms)
 ```
 
@@ -67,10 +75,12 @@ hypridle (330s)  ──→  display off (dpms)
 
 | Time | Action |
 |------|--------|
-| 150s (2.5min) | Start screensaver |
-| 151s (5min) | Lock screen |
-| 330s (5.5min) | Keyboard backlight off |
-| 330s (5.5min) | Display off (DPMS) |
+| 150s (2.5min) | Start screensaver (`omarchy-launch-screensaver`) |
+| 152s (~2.5min) | Lock screen (`omarchy-system-lock`) |
+
+These two are deliberately near-identical: the screensaver resets the idle
+timer, so a slightly longer second listener guarantees the lock fires even if
+the screensaver came up first.
 
 ## File Layout
 
@@ -105,27 +115,25 @@ linux-workstation/
     ├── ghostty/             ── terminal emulator
     ├── git/                 ── git configuration
     ├── hypr/                ── Hyprland window manager
-    │   ├── autostart.conf         ── startup apps (shared fallback)
-    │   ├── bindings.conf          ── app keybindings (shared)
-    │   ├── hypridle.conf          ── idle management
-    │   ├── hyprlock.conf          ── lock screen
-    │   ├── input.conf             ── input devices (shared fallback)
-    │   ├── looknfeel.conf         ── appearance overrides
-    │   ├── monitors.conf          ── display setup (shared fallback)
+    │   ├── hyprland.lua           ── entry point (requires the modules below)
+    │   ├── autostart.lua          ── startup apps
+    │   ├── bindings.lua           ── app keybindings
+    │   ├── input.lua              ── keyboard & touchpad
+    │   ├── looknfeel.lua          ── appearance overrides
+    │   ├── monitors.lua           ── display setup
+    │   ├── hypridle.conf          ── idle management (daemon)
+    │   ├── hyprlock.conf          ── lock screen (daemon)
+    │   ├── hyprpaper.conf         ── wallpaper daemon
+    │   ├── hyprsunset.conf        ── blue-light filter
+    │   ├── xdph.conf              ── display power daemon
     │   ├── machine/
     │   │   ├── HP_EliteBook_840_G3/
-    │   │   │   ├── autostart.conf ── startup apps (HP)
-    │   │   │   ├── input.conf     ── input devices (HP)
-    │   │   │   └── monitors.conf  ── display setup (HP)
+    │   │   │   └── autostart.conf ── startup apps (HP)
     │   │   └── Apple_MacMini/
-    │   │       ├── autostart.conf ── startup apps (Mac Mini)
-    │   │       ├── input.conf     ── input devices (Mac Mini)
-    │   │       └── monitors.conf  ── display setup (Mac Mini)
     │   └── omarchy-defaults/     ── Omarchy upstream configs
     ├── kitty/               ── terminal emulator
-    ├── swayosd/             ── on-screen display
-    ├── walker/              ── app launcher
-    ├── waybar/              ── status bar
+    ├── lazygit/             ── git TUI
+    ├── opencode/            ── agent client config
     └── starship.toml        ── shell prompt
 ```
 
