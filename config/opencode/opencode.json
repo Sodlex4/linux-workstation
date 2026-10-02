@@ -1,5 +1,15 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "autoupdate": false,
-  "instructions": ["/home/sodlex/.config/opencode/TELOS.md"]
+  "instructions": ["/home/sodlex/.config/opencode/TELOS.md"],
+  "mcp": {
+    "cua-driver": {
+      "type": "local",
+      "command": [
+        "/home/sodlex/.local/bin/cua-driver",
+        "mcp"
+      ],
+      "enabled": true
+    }
+  }
 }
