@@ -116,7 +116,7 @@ link_machine_config() {
 
 echo ""
 echo "--- Config files ---"
-find "$REPO_DIR/config" -type f ! -path '*/machine/*' ! -path '*/omarchy-defaults/*' | sort | while IFS= read -r file; do
+find "$REPO_DIR/config" -type f ! -path '*/machine/*' | sort | while IFS= read -r file; do
     link_config "$file"
 done
 

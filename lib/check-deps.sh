@@ -12,18 +12,13 @@ if [ "${1:-}" = "--quiet" ]; then
   QUIET=true
 fi
 
+OMARCHY_PATH="${OMARCHY_PATH:-$HOME/.local/share/omarchy}"
+
 KNOWN_PACKAGES=(
   "awww-daemon:awww"
   "hypridle:hypridle"
-  "hyprlock:hyprlock"
-  "waybar:waybar"
-  "mako:mako"
   "swaync:swaync"
   "fcitx5:fcitx5"
-  "swaybg:swaybg"
-  "swayosd-server:swayosd"
-  "polkit-gnome-authentication-agent-1:polkit-gnome"
-  "walker:walker"
   "kitty:kitty"
   "alacritty:alacritty"
   "ghostty:ghostty"
@@ -53,7 +48,9 @@ command_to_package() {
       return 0
     fi
   done
-  return 1
+  # Always succeed: callers use this in a command substitution, where a
+  # non-zero status would trip `set -e` and abort the whole check silently.
+  return 0
 }
 
 MISSING=false
@@ -70,11 +67,9 @@ check_cursor_theme() {
   while IFS= read -r line; do
     trimmed="${line## }"
     [[ $trimmed == '#'* ]] && continue
-    if [[ $trimmed == env\ =\ XCURSOR_THEME,* ]]; then
-      theme="${trimmed#env = XCURSOR_THEME,}"
-      theme="${theme%%#*}"
-      theme="${theme## }"
-      theme="${theme%% }"
+    # Quattro Lua form: hl.env("XCURSOR_THEME", "Bibata-Modern-Classic")
+    if [[ $trimmed =~ hl\.env\(\"XCURSOR_THEME\",\ *\"([^\"]+)\" ]]; then
+      theme="${BASH_REMATCH[1]}"
       [ -z "$theme" ] && continue
       if [ ! -d "/usr/share/icons/$theme" ] && [ ! -d "$HOME/.local/share/icons/$theme" ] && [ ! -d "$HOME/.icons/$theme" ]; then
         $QUIET || echo "  ⚠ Cursor theme not installed: $theme"
@@ -86,6 +81,8 @@ check_cursor_theme() {
   done < "$theme_file"
 }
 
+# Quattro autostart is Lua: commands appear inside o.launch_on_start("...")
+# or o.launch("...") / hl.exec_cmd(o.launch(...)) calls.
 check_autostart() {
   local autostart_file="$1"
   local label="$2"
@@ -97,7 +94,10 @@ check_autostart() {
   while IFS= read -r line; do
     trimmed="${line## }"
     [[ $trimmed == '#'* ]] && continue
-    raw=$(echo "$line" | sed -n 's/.*uwsm-app -- //p')
+    raw=$(printf '%s\n' "$line" \
+      | { grep -oE 'o\.launch(_on_start)?\("[^"]*"' || true; } \
+      | { grep -oE '"[^"]*"' || true; } \
+      | tr -d '"')
     [ -z "$raw" ] && continue
     raw="${raw%%#*}"
     raw="${raw## }"
@@ -132,27 +132,13 @@ check_autostart() {
 
 $QUIET || echo "--- Checking dependencies for $MACHINE ---"
 
-autostart_file="$REPO_DIR/config/hypr/machine/$MACHINE/autostart.conf"
-if [ -f "$autostart_file" ]; then
-  check_autostart "$autostart_file" "config/hypr/machine/$MACHINE/autostart.conf"
-fi
-
-autostart_file="$REPO_DIR/config/hypr/autostart.conf"
-if [ -f "$autostart_file" ]; then
-  check_autostart "$autostart_file" "config/hypr/autostart.conf"
-fi
-
-omarchy_default="$HOME/.local/share/omarchy/default/hypr/autostart.conf"
-if [ -f "$omarchy_default" ]; then
-  check_autostart "$omarchy_default" "omarchy default autostart"
-fi
+check_autostart "$REPO_DIR/config/hypr/autostart.lua" "config/hypr/autostart.lua"
+check_autostart "$OMARCHY_PATH/default/hypr/autostart.lua" "omarchy default autostart"
 
 $QUIET || echo ""
 $QUIET || echo "--- Checking cursor themes ---"
-for f in "$REPO_DIR/config/hypr/machine/$MACHINE/input.lua" \
-         "$REPO_DIR/config/hypr/input.lua" \
-         "$REPO_DIR/config/hypr/omarchy-defaults/envs.lua" \
-         "/usr/share/omarchy/default/hypr/envs.lua"; do
+for f in "$REPO_DIR/config/hypr/input.lua" \
+         "$OMARCHY_PATH/default/hypr/envs.lua"; do
   check_cursor_theme "$f" "${f#$REPO_DIR/}"
 done
 

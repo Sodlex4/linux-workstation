@@ -21,13 +21,13 @@ from three sources:
 
 ```
 ┌──────────────────────────────────────────────────┐
-│ 1. Omarchy Defaults (/usr/share/omarchy/)       │
+│ 1. Omarchy Defaults ($OMARCHY_PATH/default/hypr) │
 │    envs.lua, input.lua, windows.lua              │
 │    looknfeel.lua, autostart.lua                  │
 │    bindings/ (media, clipboard, tiling, utils)   │
 ├──────────────────────────────────────────────────┤
 │ 2. Theme (~/.local/state/omarchy/current/theme/)│
-│    Colors, backgrounds, hyprlock theme           │
+│    Colors, backgrounds                           │
 ├──────────────────────────────────────────────────┤
 │ 3. User Overrides (~/dev/projects/dotfiles)      │
 │    config/hypr/hyprland.lua                      │
@@ -36,9 +36,12 @@ from three sources:
 └──────────────────────────────────────────────────┘
 ```
 
-In Lua, each `require`d module is a file named after it: `require("monitors")`
-loads `config/hypr/monitors.lua`. Daemons (hyprlock, hypridle, hyprpaper,
-hyprsunset, xdph) still read plain `.conf` files.
+`$OMARCHY_PATH` is set by the session (it resolves to
+`~/.local/share/omarchy` on this machine, `/usr/share/omarchy` on a packaged
+install). In Lua, each `require`d module is a file named after it:
+`require("hypr.monitors")` loads `config/hypr/monitors.lua`. The separate
+daemons this repo still owns — hypridle, hyprsunset, xdph — read plain `.conf`
+files.
 
 ### Service Autostart (in order)
 
@@ -46,30 +49,31 @@ After Hyprland initializes, the following start via `exec-once`:
 
 | Service | Role | Source |
 |---------|------|--------|
-| `hypridle` | Idle daemon — screensaver, lock, DPMS | Omarchy default |
-| `swaync` | Notification daemon | Omarchy default |
-| `quickshell` | Status bar, launcher, OSD | Omarchy default |
+| `quickshell` | Status bar, launcher, lock screen, screensaver, night light, OSD | Omarchy default |
+| `hypridle` | Idle daemon — screensaver and lock timers | `config/hypr/hypridle.conf` |
 | `fcitx5` | Input method framework | Omarchy default |
 | `polkit-gnome` | Authentication agent | Omarchy default |
-| `hyprpaper` | Wallpaper daemon | Omarchy default |
-| `awww-daemon` | Wallpaper cycling (this repo, `autostart.lua`) | `config/hypr/autostart.lua` |
+| `awww-daemon` | Wallpaper cycling | `config/hypr/autostart.lua` |
 | `omarchy-bg-slideshow` | Wallpaper cycling | `config/hypr/autostart.lua` |
 | `alacritty + tmux dev` | Dev terminal session | `config/hypr/autostart.lua` |
 | `alacritty + nvim` | Editor terminal | `config/hypr/autostart.lua` |
+| `cua-driver` | Computer-use daemon for AI agents | `~/.config/systemd/user/cua-driver.service` |
 
 ## Lock System
 
-```
-Super+Ctrl+L  ──→  omarchy-lock-screen  ──→  hyprlock
-                    ├── Resets keyboard layout
-                    ├── Locks 1Password
-                    └── Stops screensaver
+Omarchy Quattro draws the lock screen and screensaver itself, in Quickshell.
+`hyprlock`, `swaync`, and `hyprpaper` are no longer part of the stack.
 
-hypridle (151s)  ──→  omarchy-system-lock    ──→  hyprlock
-hypridle (330s)  ──→  display off (dpms)
+```
+Super+Ctrl+L        ──→  omarchy-system-lock  ──→  quickshell lock view
+hypridle (150s)     ──→  omarchy-launch-screensaver
+hypridle (152s)     ──→  omarchy-system-lock
+before_sleep        ──→  OMARCHY_LOCK_ONLY=true omarchy-system-lock
 ```
 
-`hyprlock` reads `~/.config/hypr/hyprlock.conf` which imports theme colors from Omarchy.
+`omarchy-system-lock` also locks 1Password and stops the screensaver. Idle
+durations live in `~/.config/omarchy/shell.json` (`idle.lock`,
+`idle.screensaver`); `config/hypr/hypridle.conf` owns the suspend/wake path.
 
 ## Idle Timeouts (hypridle)
 
@@ -121,16 +125,10 @@ linux-workstation/
     │   ├── input.lua              ── keyboard & touchpad
     │   ├── looknfeel.lua          ── appearance overrides
     │   ├── monitors.lua           ── display setup
-    │   ├── hypridle.conf          ── idle management (daemon)
-    │   ├── hyprlock.conf          ── lock screen (daemon)
-    │   ├── hyprpaper.conf         ── wallpaper daemon
+    │   ├── hypridle.conf          ── idle & suspend handling (daemon)
     │   ├── hyprsunset.conf        ── blue-light filter
-    │   ├── xdph.conf              ── display power daemon
-    │   ├── machine/
-    │   │   ├── HP_EliteBook_840_G3/
-    │   │   │   └── autostart.conf ── startup apps (HP)
-    │   │   └── Apple_MacMini/
-    │   └── omarchy-defaults/     ── Omarchy upstream configs
+    │   ├── xdph.conf              ── screen-sharing portal
+    │   └── machine/               ── optional per-machine overrides (empty)
     ├── kitty/               ── terminal emulator
     ├── lazygit/             ── git TUI
     ├── opencode/            ── agent client config
@@ -156,8 +154,7 @@ Any machine with a valid DMI `product_name` gets a valid slot — fully portable
 Machine-specific configs live in `config/<app>/machine/<slot>/`. `install.sh`
 links them in two passes:
 
-1. **Shared pass** — links all files under `config/` except `machine/` and
-   `omarchy-defaults/`
+1. **Shared pass** — links all files under `config/` except `machine/`
 2. **Machine override pass** — links files from `config/<app>/machine/<MACHINE>/`,
    overwriting the shared symlinks with machine-specific versions
 
@@ -171,14 +168,16 @@ and would override the machine-neutral shared one (`output = ""`,
 `mode = "preferred"`) that adapts to any display.
 
 The full config priority order is:
-1. **Omarchy defaults** (lowest) — `/usr/share/omarchy/default/`
+1. **Omarchy defaults** (lowest) — `$OMARCHY_PATH/default/hypr/`
 2. **Theme** — `~/.local/state/omarchy/current/theme/` (managed by `omarchy-theme-set`)
 3. **Shared user overrides** — `~/.config/<app>/<file>` (this repo)
 4. **Machine-specific overrides** (highest) — overwrites shared symlinks during install
 
-Note on paths: quattro moved Omarchy from `~/.local/share/omarchy` to
-`/usr/share/omarchy` and from `~/.config/omarchy/current` to
-`~/.local/state/omarchy/current`. This repo targets the quattro layout.
+Note on paths: Quattro moved the theme from `~/.config/omarchy/current` to
+`~/.local/state/omarchy/current`, which this repo targets. Omarchy's own
+install location moved too, so read it from `$OMARCHY_PATH` rather than
+hardcoding a path — it is `~/.local/share/omarchy` on a git/dev checkout and
+`/usr/share/omarchy` on a packaged install.
 
 ## Error Tracking
 
@@ -199,15 +198,14 @@ via the appropriate package manager (`pacman` on Arch, `apt` on Ubuntu/Debian).
 
 ### HP Laptop
 
-#### i915 PSR Crash with hyprlock
+#### i915 PSR Crash on Lock / Blur
 
-**Symptom:** GPU hang/crash notification when hyprlock activates (blur rendering).
+**Symptom:** GPU hang/crash notification when the lock screen activates (blur rendering).
 
 **Cause:** Intel Skylake HD Graphics 520 — Panel Self Refresh (PSR) fails to exit
-cleanly when hyprlock triggers GPU rendering with blur passes (`blur_passes = 1` in
-`hyprlock.conf`). PSR allows the display to self-refresh while the GPU idles, but
-Skylake's PSR exit sequence is timing-sensitive and can hang the GPU when a sudden
-render request arrives (e.g. hyprlock fade-in with blur).
+cleanly when the compositor triggers GPU rendering with blur passes. PSR allows
+the display to self-refresh while the GPU idles, but Skylake's PSR exit sequence
+is timing-sensitive and can hang the GPU when a sudden render request arrives.
 
 **Fix:** Disable PSR via kernel parameter `i915.enable_psr=0`. Set in the Limine
 UKI cmdline at `/boot/limine.conf` (current boot entry, line 29).
@@ -277,10 +275,10 @@ is supposed to handle this automatically in future versions.
 path /home/odonde/.local/bin/omarchy-bg-slideshow does not exist
 ```
 
-**Scope:** All machines — both the HP and Mac Mini autostart configs reference
+**Scope:** All machines — the shared autostart config references
 `omarchy-bg-slideshow` for wallpaper cycling.
 
-**Cause:** The autostart config (`config/hypr/machine/<slot>/autostart.conf`) runs
+**Cause:** The autostart config (`config/hypr/autostart.lua`) runs
 `omarchy-bg-slideshow` at startup, but the script was never tracked in the repo
 or deployed to `~/.local/bin/`.
 
@@ -311,7 +309,21 @@ Future `git pull` + `./install.sh` on any machine will deploy it automatically.
 - [omarchy#5752](https://github.com/basecamp/omarchy/issues/5752) — Hyprland 0.55 config errors on startup
 - [omarchy#5820](https://github.com/basecamp/omarchy/issues/5820) — Various 0.55.0 defaults breakage
 
-**Note:** `config/hypr/omarchy-defaults/` holds snapshots of Omarchy's own
-upstream defaults, kept for reference and for `lib/check-deps.sh`.
-`install.sh` explicitly skips this directory, so these files are never linked
-into `~/.config/` and cannot shadow Omarchy's real defaults.
+## Verification
+
+`./lib/check-deps.sh` walks `config/hypr/autostart.lua` plus Omarchy's own
+default autostart, extracts every `o.launch(...)` / `o.launch_on_start(...)`
+command, and confirms each binary exists. It also reads the `XCURSOR_THEME`
+declared in `config/hypr/input.lua` and checks the theme is installed. Both
+parsers understand the Quattro Lua form, not the old hyprlang `.conf` syntax.
+
+For Hyprland itself:
+
+```bash
+hyprctl reload && hyprctl configerrors   # must be empty
+```
+
+**Note:** Omarchy's upstream defaults are no longer snapshotted in this repo.
+Read them from `$OMARCHY_PATH/default/hypr/` instead — a copied snapshot that has
+diverged from upstream is worse than none, because it silently stops describing
+what actually runs.

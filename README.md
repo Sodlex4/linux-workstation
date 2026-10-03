@@ -25,18 +25,20 @@ The Hyprland config in this repo is **machine-neutral**: `monitors.lua` uses
 attached. One set of files serves every machine.
 
 Machines are still identified by DMI `product_name` (e.g. `HP_EliteBook_840_G3`),
-and optional overrides can live in `config/<app>/machine/<slot>/`.
+and optional overrides can live in `config/<app>/machine/<slot>/`. Those
+per-machine slots are currently **empty** — one shared config serves both
+machines.
 
 | Slot | Machine | Role |
 |------|---------|------|
 | `HP_EliteBook_840_G3` | HP EliteBook 840 G3 | Primary workstation |
 | `Apple_MacMini` | Apple Mac Mini (Macmini5,1) | Secondary machine |
 
-Both slots are currently **empty**. To generate hardware-probed overrides for a
-machine, run `./lib/auto-generate.sh <slot>` yourself and review them before
-committing — `install.sh` deliberately does not auto-generate, because
+`install.sh` deliberately does not auto-generate machine overrides, because
 generated monitors pin an output name and would override the portable shared
-config.
+config. To probe hardware for a machine, run `./lib/probe-hardware.sh`; to
+generate slot overrides, run `./lib/auto-generate.sh <slot>` yourself and review
+them before committing.
 
 ### Omarchy Versions
 
@@ -78,13 +80,13 @@ For the runtime startup flow — how configs layer from Omarchy defaults → the
 
 ```bash
 # On the machine where you made the change:
-cd ~/Projects/dotfiles
+cd ~/dev/projects/dotfiles
 git add -A
 git commit -m "describe what you changed and why"
 git push
 
 # On the other machine:
-cd ~/Projects/dotfiles
+cd ~/dev/projects/dotfiles
 git pull origin master
 ```
 
@@ -102,9 +104,9 @@ To add an override:
 ```
 
 Hyprland's compositor overrides (`monitors`, `input`, `bindings`, `looknfeel`,
-`autostart`) are shared `config/hypr/*.lua` files — Omarchy loads Hyprland
-config through Lua, so `.conf` extensions only apply to the daemon configs
-(`hyprlock`, `hypridle`, `hyprpaper`, `hyprsunset`, `xdph`).
+`autostart`) are shared `config/hypr/*.lua` files — Omarchy Quattro loads
+Hyprland config through Lua, so `.conf` files only apply to the separate daemons
+this repo still owns: `hypridle`, `hyprsunset`, and `xdph`.
 
 ### Adding a new config file
 
@@ -112,10 +114,10 @@ Run `./install.sh` on the other machine after pulling — it detects new files a
 
 ## Adding a New Machine
 
-1. Clone this repo on the new machine
-2. Run `./install.sh` — it auto-detects hardware and generates configs
-3. Review the generated configs in `config/hypr/machine/<slot>/`
-4. Commit and push the new machine slot
+1. Upgrade it to Omarchy Quattro: `omarchy-upgrade-to-quattro`, then reboot
+2. Clone this repo on the new machine
+3. Run `./install.sh` — it detects hardware and creates the symlinks
+4. Run `./lib/check-deps.sh` to confirm every referenced command is installed
 
 ## Package Installation
 
@@ -135,12 +137,10 @@ Package lists are in `packages/<distro>/`:
 
 | Component | Config |
 |-----------|--------|
-| **Hyprland** | `config/hypr/*.lua` — compositor (user overrides; Omarchy 4 loads Lua) |
-| | `config/hypr/omarchy-defaults/` — Omarchy default keybindings & settings |
-| **Hyprlock** | `config/hypr/hyprlock.conf` — lock screen |
+| **Hyprland** | `config/hypr/*.lua` — compositor (user overrides; Omarchy Quattro loads Lua) |
 | **Hypridle** | `config/hypr/hypridle.conf` — idle management daemon |
-| **Hyprpaper** | `config/hypr/hyprpaper.conf` — wallpaper daemon |
 | **Hyprsunset** | `config/hypr/hyprsunset.conf` — blue-light filter |
+| **xdph** | `config/hypr/xdph.conf` — screen-sharing portal |
 | **Alacritty** | `config/alacritty/` — terminal emulator |
 | **Kitty** | `config/kitty/` — terminal emulator |
 | **Ghostty** | `config/ghostty/` — terminal emulator |
@@ -152,16 +152,27 @@ Package lists are in `packages/<distro>/`:
 | **OpenCode** | `config/opencode/` — agent client config |
 | **Bash** | `bashrc` — shell aliases and config |
 
-> **Note:** the status bar, app launcher, and OSD are provided by Omarchy's
-> Quickshell shell, not by this repo. Waybar, Walker, and SwayOSD configs were
-> removed when the desktop moved to Omarchy.
+> **Note:** the status bar, app launcher, lock screen, screensaver, night
+> light, and OSD are provided by Omarchy's Quickshell shell, not by this repo.
+> The Waybar, Walker, Mako, SwayOSD, and Hyprlock/Hyprpaper configs were removed
+> when the desktop moved to Omarchy Quattro. Wallpapers are drawn by `awww`,
+> which `config/hypr/autostart.lua` launches.
 
 ## Installation
 
+Omarchy Quattro only. On a pre-Quattro machine, upgrade first:
+
 ```bash
-git clone https://github.com/Sodlex4/linux-workstation.git ~/Projects/dotfiles
-cd ~/Projects/dotfiles
+omarchy-upgrade-to-quattro   # then reboot
+```
+
+Then:
+
+```bash
+git clone https://github.com/Sodlex4/linux-workstation.git ~/dev/projects/dotfiles
+cd ~/dev/projects/dotfiles
 ./install.sh
+./lib/check-deps.sh
 ```
 
 The install script detects your machine via DMI and symlinks every config file into `~/.config/`, along with any machine-specific overrides found for that slot. Existing files are backed up to `~/.config/dotfiles-backup-<timestamp>/` before replacement. It is safe to re-run: files already linked correctly are skipped.
